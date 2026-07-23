@@ -5,5 +5,13 @@ export const IPC_CHANNELS = {
   setPetMouseInteractive: 'pet:set-mouse-interactive',
   beginPetDrag: 'pet:begin-drag',
   movePetDrag: 'pet:move-drag',
-  endPetDrag: 'pet:end-drag'
+  endPetDrag: 'pet:end-drag',
+  setPetEmotion: 'pet:set-emotion',
+  showPetMessage: 'pet:show-message',
+  hidePetMessage: 'pet:hide-message',
+  showPetContextMenu: 'pet:show-context-menu',
+  petEmotionChanged: 'pet:event-emotion-changed',
+  petMessageShown: 'pet:event-message-shown',
+  petMessageHidden: 'pet:event-message-hidden',
+  petWindowHidden: 'pet:event-window-hidden'
 } as const

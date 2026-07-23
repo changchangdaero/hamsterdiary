@@ -1,7 +1,10 @@
 // 앱 수명 주기, 단일 인스턴스, 펫 창, 트레이 초기화를 담당하는 main 진입 파일입니다.
 import { app, BrowserWindow, screen } from 'electron'
 import { registerFoundationIpc } from './ipc/registerFoundationIpc'
-import { registerPetIpc } from './ipc/registerPetIpc'
+import {
+  registerPetIpc,
+  type PetIpcController
+} from './ipc/registerPetIpc'
 import { runtimeStore, settingsStore } from './stores'
 import {
   createAppTray,
@@ -11,12 +14,16 @@ import { createMainWindow } from './windows/createMainWindow'
 import { createPetWindow } from './windows/createPetWindow'
 import {
   isPetPositionVisible,
+  migratePetPosition,
+  PET_WINDOW_LAYOUT_VERSION,
   resolvePetPosition
 } from './windows/petPosition'
+import { IPC_CHANNELS } from '../shared/ipcChannels'
 
 let mainWindow: BrowserWindow | null = null
 let petWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
+let petIpcController: PetIpcController | null = null
 let isQuitting = false
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
@@ -34,8 +41,19 @@ const ensurePetWindow = (): BrowserWindow => {
   }
 
   const savedPosition = runtimeStore.get('petPosition')
-  const position = resolvePetPosition(savedPosition)
-  if (
+  const storedLayoutVersion = runtimeStore.get('petWindowLayoutVersion')
+  const layoutVersion =
+    Number.isSafeInteger(storedLayoutVersion) && storedLayoutVersion >= 1
+      ? storedLayoutVersion
+      : 1
+  const position = migratePetPosition(savedPosition, layoutVersion)
+  if (layoutVersion < PET_WINDOW_LAYOUT_VERSION) {
+    runtimeStore.set({
+      ...runtimeStore.store,
+      petPosition: position,
+      petWindowLayoutVersion: PET_WINDOW_LAYOUT_VERSION
+    })
+  } else if (
     !savedPosition ||
     savedPosition.x !== position.x ||
     savedPosition.y !== position.y
@@ -55,7 +73,7 @@ const ensurePetWindow = (): BrowserWindow => {
   return petWindow
 }
 
-const showPet = (focus = false): void => {
+const showPet = (focus = false): BrowserWindow => {
   settingsStore.set('petEnabled', true)
   const window = ensurePetWindow()
   window.setIgnoreMouseEvents(true, { forward: true })
@@ -69,11 +87,14 @@ const showPet = (focus = false): void => {
     }
   }
   refreshTrayMenu()
+  return window
 }
 
 const hidePet = (): void => {
   settingsStore.set('petEnabled', false)
+  petIpcController?.cancelDrag()
   if (isWindowAlive(petWindow)) {
+    petWindow.webContents.send(IPC_CHANNELS.petWindowHidden)
     petWindow.setIgnoreMouseEvents(true, { forward: true })
     petWindow.hide()
   }
@@ -110,7 +131,13 @@ if (!hasSingleInstanceLock) {
 
   void app.whenReady().then(() => {
     registerFoundationIpc()
-    registerPetIpc(() => petWindow)
+    petIpcController = registerPetIpc({
+      getPetWindow: () => petWindow,
+      getFoundationWindow: () => mainWindow,
+      showPet: () => showPet(),
+      hidePet,
+      quitApp
+    })
 
     ensurePetWindow()
     appTray = createAppTray({
@@ -130,7 +157,11 @@ if (!hasSingleInstanceLock) {
       const currentPosition = { x, y }
       if (!isPetPositionVisible(currentPosition)) {
         const position = resolvePetPosition(null)
-        petWindow.setPosition(position.x, position.y)
+        petWindow.setPosition(
+          Math.round(position.x),
+          Math.round(position.y),
+          false
+        )
         runtimeStore.set('petPosition', position)
       }
     }

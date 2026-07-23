@@ -7,6 +7,7 @@ export const runtimeStore = new Store<RuntimeStoreData>({
   defaults: {
     dataVersion: 1,
     phase0Counter: 0,
-    petPosition: null
+    petPosition: null,
+    petWindowLayoutVersion: 1
   }
 })

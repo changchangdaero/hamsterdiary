@@ -19,4 +19,5 @@ export interface RuntimeStoreData {
   dataVersion: number
   phase0Counter: number
   petPosition: PetPosition | null
+  petWindowLayoutVersion: number
 }

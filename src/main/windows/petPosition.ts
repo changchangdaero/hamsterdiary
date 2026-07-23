@@ -2,7 +2,9 @@
 import { screen, type Display, type Rectangle } from 'electron'
 import type { PetPosition } from '../../shared/types/stores'
 
-export const PET_WINDOW_SIZE = { width: 220, height: 260 } as const
+export const PET_WINDOW_SIZE = { width: 360, height: 420 } as const
+export const PET_WINDOW_LAYOUT_VERSION = 2
+const PREVIOUS_PET_WINDOW_SIZE = { width: 220, height: 260 } as const
 const PET_WINDOW_MARGIN = 20
 const MINIMUM_VISIBLE_AREA_RATIO = 0.25
 
@@ -60,3 +62,29 @@ export const resolvePetPosition = (position: PetPosition | null): PetPosition =>
   isPetPositionVisible(position)
     ? { x: Math.round(position.x), y: Math.round(position.y) }
     : getDefaultPetPosition()
+
+export const migratePetPosition = (
+  position: PetPosition | null,
+  layoutVersion: number
+): PetPosition => {
+  if (
+    position === null ||
+    !Number.isFinite(position.x) ||
+    !Number.isFinite(position.y)
+  ) {
+    return resolvePetPosition(null)
+  }
+
+  if (layoutVersion >= PET_WINDOW_LAYOUT_VERSION) {
+    return resolvePetPosition(position)
+  }
+
+  return resolvePetPosition({
+    x:
+      position.x -
+      (PET_WINDOW_SIZE.width - PREVIOUS_PET_WINDOW_SIZE.width) / 2,
+    y:
+      position.y -
+      (PET_WINDOW_SIZE.height - PREVIOUS_PET_WINDOW_SIZE.height)
+  })
+}
