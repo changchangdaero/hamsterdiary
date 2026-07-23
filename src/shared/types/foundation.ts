@@ -4,6 +4,12 @@ import type {
   SchedulesStoreData,
   SettingsStoreData
 } from './stores'
+import type {
+  PetEmotion,
+  PetDragMovePayload,
+  PetMessagePayload,
+  ResolvedPetMessage
+} from './pet'
 
 export interface RuntimeVersions {
   electron: string
@@ -24,7 +30,17 @@ export interface DesktopPetAPI {
   getFoundationStatus: () => Promise<FoundationStatus>
   incrementPhase0Counter: () => Promise<FoundationStatus>
   setPetMouseInteractive: (interactive: boolean) => void
-  beginPetDrag: (screenX: number, screenY: number) => void
-  movePetDrag: (screenX: number, screenY: number) => void
+  beginPetDrag: (payload: PetDragMovePayload) => void
+  movePetDrag: (payload: PetDragMovePayload) => void
   endPetDrag: () => void
+  setPetEmotion: (emotion: PetEmotion) => Promise<void>
+  showPetMessage: (payload: PetMessagePayload) => Promise<void>
+  hidePetMessage: () => Promise<void>
+  showPetContextMenu: () => void
+  onPetEmotionChanged: (listener: (emotion: PetEmotion) => void) => () => void
+  onPetMessageShown: (
+    listener: (message: ResolvedPetMessage) => void
+  ) => () => void
+  onPetMessageHidden: (listener: () => void) => () => void
+  onPetWindowHidden: (listener: () => void) => () => void
 }
