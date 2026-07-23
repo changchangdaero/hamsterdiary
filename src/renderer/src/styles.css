@@ -1,0 +1,83 @@
+/* 구간 0 확인 화면에 필요한 최소 레이아웃과 상태 스타일을 정의하는 파일입니다. */
+:root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #202124;
+  background: #f4f5f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+}
+
+.foundation-card {
+  width: min(560px, calc(100vw - 48px));
+  padding: 32px;
+  border: 1px solid #dfe1e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgb(32 33 36 / 10%);
+}
+
+h1 {
+  margin: 0 0 28px;
+  font-size: 1.55rem;
+}
+
+dl {
+  margin: 0 0 24px;
+}
+
+dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eceff1;
+}
+
+dt {
+  font-weight: 600;
+}
+
+dd {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 16px;
+  color: #ffffff;
+  background: #3659b7;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.status {
+  min-height: 24px;
+  margin: 16px 0 0;
+}
+
+.status.success {
+  color: #137333;
+}
+
+.status.error {
+  color: #b3261e;
+}
