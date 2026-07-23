@@ -6,6 +6,7 @@ export const runtimeStore = new Store<RuntimeStoreData>({
   name: 'runtime',
   defaults: {
     dataVersion: 1,
-    phase0Counter: 0
+    phase0Counter: 0,
+    petPosition: null
   }
 })

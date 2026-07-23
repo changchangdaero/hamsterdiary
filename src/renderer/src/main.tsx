@@ -4,6 +4,12 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles.css'
 
+const isPetWindow =
+  new URLSearchParams(window.location.search).get('window') === 'pet'
+document.documentElement.classList.add(
+  isPetWindow ? 'pet-document' : 'foundation-document'
+)
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

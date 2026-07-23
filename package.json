@@ -40,6 +40,12 @@
     "files": [
       "out/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "resources/tray-icon.png",
+        "to": "tray-icon.png"
+      }
+    ],
     "win": {
       "target": [
         {

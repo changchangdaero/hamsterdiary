@@ -23,4 +23,8 @@ export interface FoundationStatus {
 export interface DesktopPetAPI {
   getFoundationStatus: () => Promise<FoundationStatus>
   incrementPhase0Counter: () => Promise<FoundationStatus>
+  setPetMouseInteractive: (interactive: boolean) => void
+  beginPetDrag: (screenX: number, screenY: number) => void
+  movePetDrag: (screenX: number, screenY: number) => void
+  endPetDrag: () => void
 }
