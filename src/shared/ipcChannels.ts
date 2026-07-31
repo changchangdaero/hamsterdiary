@@ -13,5 +13,14 @@ export const IPC_CHANNELS = {
   petEmotionChanged: 'pet:event-emotion-changed',
   petMessageShown: 'pet:event-message-shown',
   petMessageHidden: 'pet:event-message-hidden',
-  petWindowHidden: 'pet:event-window-hidden'
+  petWindowHidden: 'pet:event-window-hidden',
+  listSchedules: 'schedule:list',
+  createSchedule: 'schedule:create',
+  updateSchedule: 'schedule:update',
+  deleteSchedule: 'schedule:delete',
+  setScheduleCompleted: 'schedule:set-completed',
+  openScheduleDiary: 'schedule:open-diary',
+  openNewSchedule: 'schedule:open-new',
+  scheduleDiaryReady: 'schedule:diary-ready',
+  scheduleOpenNewRequested: 'schedule:event-open-new-requested'
 } as const
