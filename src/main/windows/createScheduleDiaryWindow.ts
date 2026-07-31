@@ -4,10 +4,10 @@ import { BrowserWindow, shell } from 'electron'
 
 export const createScheduleDiaryWindow = (): BrowserWindow => {
   const window = new BrowserWindow({
-    width: 980,
-    height: 720,
-    minWidth: 760,
-    minHeight: 560,
+    width: 1200,
+    height: 800,
+    minWidth: 1000,
+    minHeight: 700,
     show: false,
     autoHideMenuBar: true,
     webPreferences: {

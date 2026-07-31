@@ -58,6 +58,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
     () => new Date(today.getFullYear(), today.getMonth(), 1)
   )
   const [selectedDate, setSelectedDate] = useState(todayKey)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [editing, setEditing] = useState<EditingState>(null)
   const [loading, setLoading] = useState(true)
@@ -81,6 +82,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
     const parsedDate = fromDateKey(date)
     dirtyRef.current = false
     setSelectedDate(date)
+    setIsDetailOpen(true)
     setDisplayMonth(
       new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1)
     )
@@ -136,14 +138,14 @@ function ScheduleDiaryWindow(): React.JSX.Element {
   )
   const selectedSchedules = schedulesByDate.get(selectedDate) ?? []
 
-  const selectAndAdd = (day: CalendarDay): void => {
+  const selectDay = (day: CalendarDay): void => {
     setSelectedDate(day.key)
+    setIsDetailOpen(true)
     if (!day.inCurrentMonth) {
       setDisplayMonth(
         new Date(day.date.getFullYear(), day.date.getMonth(), 1)
       )
     }
-    openNewForm(day.key)
   }
 
   const moveMonth = (offset: number): void => {
@@ -211,7 +213,12 @@ function ScheduleDiaryWindow(): React.JSX.Element {
         </p>
       )}
 
-      <section className="calendar-panel" aria-labelledby="calendar-month">
+      <div
+        className={`calendar-workspace ${
+          isDetailOpen ? 'is-detail-open' : ''
+        }`}
+      >
+        <section className="calendar-panel" aria-labelledby="calendar-month">
         <div className="calendar-toolbar">
           <div className="calendar-navigation">
             <button
@@ -267,14 +274,14 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  aria-label={`${day.date.toLocaleDateString('ko-KR')} 일정 추가`}
+                  aria-label={`${day.date.toLocaleDateString('ko-KR')} 일정 보기`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => selectAndAdd(day)}
+                  onClick={() => selectDay(day)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault()
-                      selectAndAdd(day)
+                      selectDay(day)
                     }
                   }}
                 >
@@ -295,6 +302,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                           }`}
                           onClick={(event) => {
                             event.stopPropagation()
+                            setIsDetailOpen(true)
                             openEditForm(schedule)
                           }}
                           onKeyDown={(event) => event.stopPropagation()}
@@ -310,6 +318,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                         onClick={(event) => {
                           event.stopPropagation()
                           setSelectedDate(day.key)
+                          setIsDetailOpen(true)
                         }}
                         onKeyDown={(event) => event.stopPropagation()}
                       >
@@ -322,69 +331,89 @@ function ScheduleDiaryWindow(): React.JSX.Element {
             })}
           </div>
         )}
-      </section>
+        </section>
 
       <section
         className="selected-date-panel"
         aria-labelledby="selected-date-title"
+        aria-hidden={!isDetailOpen}
+        inert={!isDetailOpen}
       >
         <div className="selected-date-header">
-          <h2 id="selected-date-title">
-            {fromDateKey(selectedDate).toLocaleDateString('ko-KR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              weekday: 'long'
-            })}
-          </h2>
-          <button type="button" onClick={() => openNewForm(selectedDate)}>
-            일정 추가
+          <div>
+            <p>선택한 날짜</p>
+            <h2 id="selected-date-title">
+              {fromDateKey(selectedDate).toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+              })}
+            </h2>
+          </div>
+          <button
+            type="button"
+            className="detail-close-button"
+            aria-label="상세 패널 닫기"
+            onClick={() => setIsDetailOpen(false)}
+          >
+            ×
           </button>
         </div>
 
-        {selectedSchedules.length === 0 ? (
-          <p className="selected-date-empty">
-            이 날짜에는 아직 일정이 없습니다.
-          </p>
-        ) : (
-          <ul className="selected-schedule-list">
-            {selectedSchedules.map((schedule) => (
-              <li
-                key={schedule.id}
-                className={
-                  schedule.status === 'completed' ? 'is-completed' : ''
-                }
-              >
-                <label className="schedule-complete">
-                  <input
-                    type="checkbox"
-                    checked={schedule.status === 'completed'}
-                    onChange={() => void toggleCompleted(schedule)}
-                  />
-                  <span className="sr-only">완료 상태</span>
-                </label>
-                <time dateTime={schedule.startAt}>{timeLabel(schedule)}</time>
-                <strong>{schedule.title}</strong>
-                <span className="schedule-state">
-                  {schedule.status === 'completed' ? '완료' : '예정'}
-                </span>
-                <div className="schedule-actions">
-                  <button type="button" onClick={() => openEditForm(schedule)}>
-                    수정
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => void removeSchedule(schedule)}
-                  >
-                    삭제
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="selected-date-content">
+          {selectedSchedules.length === 0 ? (
+            <p className="selected-date-empty">
+              이 날짜에는 아직 일정이 없습니다.
+            </p>
+          ) : (
+            <ul className="selected-schedule-list">
+              {selectedSchedules.map((schedule) => (
+                <li
+                  key={schedule.id}
+                  className={
+                    schedule.status === 'completed' ? 'is-completed' : ''
+                  }
+                >
+                  <label className="schedule-complete">
+                    <input
+                      type="checkbox"
+                      checked={schedule.status === 'completed'}
+                      onChange={() => void toggleCompleted(schedule)}
+                    />
+                    <span className="sr-only">완료 상태</span>
+                  </label>
+                  <time dateTime={schedule.startAt}>{timeLabel(schedule)}</time>
+                  <strong>{schedule.title}</strong>
+                  <span className="schedule-state">
+                    {schedule.status === 'completed' ? '완료' : '예정'}
+                  </span>
+                  <div className="schedule-actions">
+                    <button type="button" onClick={() => openEditForm(schedule)}>
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => void removeSchedule(schedule)}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <button
+          type="button"
+          className="detail-add-button"
+          onClick={() => openNewForm(selectedDate)}
+        >
+          + 일정 추가
+        </button>
       </section>
+      </div>
 
       {editing !== null && (
         <div className="schedule-modal-backdrop" role="presentation">
