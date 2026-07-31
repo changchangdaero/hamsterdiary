@@ -1368,6 +1368,73 @@ dd {
   background: rgb(205 157 70 / 13%);
 }
 
+.natural-schedule-input {
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--calendar-border);
+  border-radius: 10px;
+  background: rgb(115 142 224 / 7%);
+}
+
+.natural-schedule-input h3,
+.natural-schedule-input p {
+  margin: 0;
+}
+
+.natural-schedule-input h3 {
+  font-size: 0.95rem;
+}
+
+.natural-schedule-input > div:first-child p {
+  margin-top: 4px;
+  color: var(--calendar-text-muted);
+  font-size: 0.8rem;
+}
+
+.natural-schedule-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.natural-schedule-preview {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 18%);
+}
+
+.natural-schedule-preview dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 0;
+}
+
+.natural-schedule-preview dl div {
+  min-width: 0;
+}
+
+.natural-schedule-preview dt {
+  color: var(--calendar-text-muted);
+  font-size: 0.75rem;
+}
+
+.natural-schedule-preview dd {
+  margin: 3px 0 0;
+  overflow: hidden;
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.natural-schedule-preview .natural-schedule-warning {
+  margin-top: 10px;
+  color: #f0cf91;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 1100px) {
   .calendar-workspace.is-detail-open {
     grid-template-columns: minmax(0, 1fr) 320px;

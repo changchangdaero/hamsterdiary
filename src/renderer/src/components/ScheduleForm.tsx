@@ -5,6 +5,10 @@ import type {
   ScheduleDraft,
   ScheduleReminderMinutes
 } from '../../../shared/types/schedule'
+import {
+  parseSchedule,
+  type ParsedSchedule
+} from '../scheduleParser'
 
 interface ScheduleFormProps {
   schedule: Schedule | null
@@ -94,9 +98,13 @@ function ScheduleForm({
     [initialDate, schedule]
   )
   const [draft, setDraft] = useState(initialDraft)
+  const [naturalText, setNaturalText] = useState('')
+  const [parsePreview, setParsePreview] = useState<ParsedSchedule | null>(null)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [saving, setSaving] = useState(false)
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initialDraft)
+  const dirty =
+    JSON.stringify(draft) !== JSON.stringify(initialDraft) ||
+    naturalText.trim().length > 0
   const selectedDate = new Date(`${draft.date}T${draft.time}:00`)
   const isPast =
     !Number.isNaN(selectedDate.getTime()) && selectedDate.getTime() < Date.now()
@@ -121,6 +129,34 @@ function ScheduleForm({
   ): void => {
     setDraft((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: undefined, form: undefined }))
+  }
+
+  const parseNaturalText = (): void => {
+    const text = naturalText.trim()
+    if (!text) {
+      setParsePreview(null)
+      setErrors((current) => ({
+        ...current,
+        form: '자연어로 입력할 문장을 적어주세요.'
+      }))
+      return
+    }
+
+    const parsed = parseSchedule(text)
+    setParsePreview(parsed)
+    setDraft((current) => ({
+      ...current,
+      date: parsed.date,
+      time: parsed.time,
+      title: parsed.title
+    }))
+    setErrors((current) => ({
+      ...current,
+      title: undefined,
+      date: undefined,
+      time: undefined,
+      form: undefined
+    }))
   }
 
   const submit = async (event: React.FormEvent): Promise<void> => {
@@ -158,12 +194,79 @@ function ScheduleForm({
         {schedule ? '일정 수정' : '새 일정 추가'}
       </h2>
       <form onSubmit={(event) => void submit(event)} noValidate>
+        {schedule === null && (
+          <section
+            className="natural-schedule-input"
+            aria-labelledby="natural-schedule-title"
+          >
+            <div>
+              <h3 id="natural-schedule-title">문장으로 빠르게 입력</h3>
+              <p>날짜와 시간을 확인한 뒤 기존 저장 버튼을 눌러주세요.</p>
+            </div>
+            <div className="natural-schedule-controls">
+              <input
+                id="natural-schedule-text"
+                value={naturalText}
+                maxLength={200}
+                autoFocus
+                placeholder="내일 오후 3시 회의"
+                aria-label="자연어 일정"
+                onChange={(event) => {
+                  setNaturalText(event.target.value)
+                  setParsePreview(null)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    parseNaturalText()
+                  }
+                }}
+              />
+              <button type="button" onClick={parseNaturalText}>
+                미리보기
+              </button>
+            </div>
+
+            {parsePreview && (
+              <div className="natural-schedule-preview" role="status">
+                <strong>파싱 결과</strong>
+                <dl>
+                  <div>
+                    <dt>날짜</dt>
+                    <dd>{parsePreview.date}</dd>
+                  </div>
+                  <div>
+                    <dt>시간</dt>
+                    <dd>{parsePreview.time}</dd>
+                  </div>
+                  <div>
+                    <dt>제목</dt>
+                    <dd>{parsePreview.title || '직접 입력 필요'}</dd>
+                  </div>
+                </dl>
+                {!parsePreview.matched ? (
+                  <p className="natural-schedule-warning">
+                    날짜와 시간을 못 알아들었어요. 아래 수동 필드에서 직접
+                    골라주세요.
+                  </p>
+                ) : (
+                  !parsePreview.timeMatched && (
+                    <p className="natural-schedule-warning">
+                      시간을 못 알아들었어요. 아래 시간 필드에서 직접 골라주세요.
+                    </p>
+                  )
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
         <label htmlFor="schedule-title">제목</label>
         <input
           id="schedule-title"
           value={draft.title}
           maxLength={80}
-          autoFocus
+          autoFocus={schedule !== null}
           onChange={(event) => updateField('title', event.target.value)}
           aria-invalid={Boolean(errors.title)}
         />
