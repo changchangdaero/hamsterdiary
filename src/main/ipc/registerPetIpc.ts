@@ -30,6 +30,7 @@ interface RegisterPetIpcOptions {
   hidePet: () => void
   openScheduleDiary: () => void
   openNewSchedule: () => void
+  togglePetScheduleInput: () => void
   openSettings: () => void
   quitApp: () => void
 }
@@ -404,6 +405,7 @@ export const registerPetIpc = (
     Menu.buildFromTemplate([
       { label: '일정 다이어리 열기', click: options.openScheduleDiary },
       { label: '새 일정 추가', click: options.openNewSchedule },
+      { label: '말 걸기', click: options.togglePetScheduleInput },
       { type: 'separator' },
       {
         label: '펫 표시',

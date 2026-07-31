@@ -20,6 +20,10 @@ import {
 } from './tray/createAppTray'
 import { createMainWindow } from './windows/createMainWindow'
 import { createPetWindow } from './windows/createPetWindow'
+import {
+  createPetScheduleInputWindow,
+  positionPetScheduleInputWindow
+} from './windows/createPetScheduleInputWindow'
 import { createScheduleDiaryWindow } from './windows/createScheduleDiaryWindow'
 import { createSettingsWindow } from './windows/createSettingsWindow'
 import {
@@ -36,6 +40,7 @@ import {
 
 let mainWindow: BrowserWindow | null = null
 let petWindow: BrowserWindow | null = null
+let petScheduleInputWindow: BrowserWindow | null = null
 let scheduleDiaryWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
@@ -53,6 +58,13 @@ const isWindowAlive = (
 
 const refreshTrayMenu = (): void => {
   appTray?.refreshMenu()
+}
+
+const closePetScheduleInput = (): void => {
+  if (isWindowAlive(petScheduleInputWindow)) {
+    petScheduleInputWindow.close()
+  }
+  petScheduleInputWindow = null
 }
 
 const ensurePetWindow = (): BrowserWindow => {
@@ -86,6 +98,7 @@ const ensurePetWindow = (): BrowserWindow => {
     shouldShow: () => settingsStore.get('petEnabled')
   })
   petWindow.once('closed', () => {
+    closePetScheduleInput()
     petWindow = null
     refreshTrayMenu()
   })
@@ -113,12 +126,37 @@ const showPet = (focus = false): BrowserWindow => {
 const hidePet = (): void => {
   settingsStore.set('petEnabled', false)
   petIpcController?.cancelDrag()
+  closePetScheduleInput()
   if (isWindowAlive(petWindow)) {
     petWindow.webContents.send(IPC_CHANNELS.petWindowHidden)
     petWindow.setIgnoreMouseEvents(true, { forward: true })
     petWindow.hide()
   }
   refreshTrayMenu()
+}
+
+const togglePetScheduleInput = (): void => {
+  if (isWindowAlive(petScheduleInputWindow)) {
+    closePetScheduleInput()
+    return
+  }
+
+  const currentPetWindow = showPet()
+  const inputWindow = createPetScheduleInputWindow(currentPetWindow)
+  petScheduleInputWindow = inputWindow
+
+  const followPet = (): void => {
+    if (!inputWindow.isDestroyed()) {
+      positionPetScheduleInputWindow(currentPetWindow, inputWindow)
+    }
+  }
+  currentPetWindow.on('move', followPet)
+  inputWindow.once('closed', () => {
+    currentPetWindow.removeListener('move', followPet)
+    if (petScheduleInputWindow === inputWindow) {
+      petScheduleInputWindow = null
+    }
+  })
 }
 
 const showFoundationWindow = (): void => {
@@ -259,6 +297,7 @@ if (!hasSingleInstanceLock) {
       hidePet,
       openScheduleDiary: () => openScheduleDiary(false),
       openNewSchedule: () => openScheduleDiary(true),
+      togglePetScheduleInput,
       openSettings: openSettingsWindow,
       quitApp
     })
@@ -266,6 +305,7 @@ if (!hasSingleInstanceLock) {
       getTrustedWindows: () => [
         mainWindow,
         petWindow,
+        petScheduleInputWindow,
         scheduleDiaryWindow,
         settingsWindow
       ],
