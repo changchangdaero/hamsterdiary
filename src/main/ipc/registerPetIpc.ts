@@ -28,6 +28,8 @@ interface RegisterPetIpcOptions {
   getFoundationWindow: () => BrowserWindow | null
   showPet: () => BrowserWindow
   hidePet: () => void
+  openScheduleDiary: () => void
+  openNewSchedule: () => void
   quitApp: () => void
 }
 
@@ -399,8 +401,8 @@ export const registerPetIpc = (
     }
 
     Menu.buildFromTemplate([
-      { label: '일정 다이어리 열기', enabled: false },
-      { label: '새 일정 추가', enabled: false },
+      { label: '일정 다이어리 열기', click: options.openScheduleDiary },
+      { label: '새 일정 추가', click: options.openNewSchedule },
       { type: 'separator' },
       {
         label: '펫 표시',

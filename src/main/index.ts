@@ -5,6 +5,7 @@ import {
   registerPetIpc,
   type PetIpcController
 } from './ipc/registerPetIpc'
+import { registerScheduleIpc } from './ipc/registerScheduleIpc'
 import { runtimeStore, settingsStore } from './stores'
 import {
   createAppTray,
@@ -12,6 +13,7 @@ import {
 } from './tray/createAppTray'
 import { createMainWindow } from './windows/createMainWindow'
 import { createPetWindow } from './windows/createPetWindow'
+import { createScheduleDiaryWindow } from './windows/createScheduleDiaryWindow'
 import {
   isPetPositionVisible,
   migratePetPosition,
@@ -22,9 +24,13 @@ import { IPC_CHANNELS } from '../shared/ipcChannels'
 
 let mainWindow: BrowserWindow | null = null
 let petWindow: BrowserWindow | null = null
+let scheduleDiaryWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
 let petIpcController: PetIpcController | null = null
 let isQuitting = false
+let isScheduleDiaryReady = false
+let pendingNewSchedule = false
+let pendingNewScheduleDate: string | undefined
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
 const isWindowAlive = (
@@ -117,6 +123,54 @@ const showFoundationWindow = (): void => {
   mainWindow.focus()
 }
 
+const openScheduleDiary = (openNew = false, date?: string): void => {
+  if (openNew) {
+    pendingNewSchedule = true
+    pendingNewScheduleDate = date
+  }
+
+  if (!isWindowAlive(scheduleDiaryWindow)) {
+    isScheduleDiaryReady = false
+    scheduleDiaryWindow = createScheduleDiaryWindow()
+    scheduleDiaryWindow.once('closed', () => {
+      scheduleDiaryWindow = null
+      isScheduleDiaryReady = false
+      pendingNewSchedule = false
+      pendingNewScheduleDate = undefined
+    })
+  } else {
+    if (scheduleDiaryWindow.isMinimized()) {
+      scheduleDiaryWindow.restore()
+    }
+    scheduleDiaryWindow.show()
+    scheduleDiaryWindow.focus()
+  }
+
+  if (pendingNewSchedule && isScheduleDiaryReady) {
+    scheduleDiaryWindow.webContents.send(
+      IPC_CHANNELS.scheduleOpenNewRequested,
+      pendingNewScheduleDate
+    )
+    pendingNewSchedule = false
+    pendingNewScheduleDate = undefined
+  }
+}
+
+const markScheduleDiaryReady = (): void => {
+  isScheduleDiaryReady = true
+  if (
+    pendingNewSchedule &&
+    isWindowAlive(scheduleDiaryWindow)
+  ) {
+    scheduleDiaryWindow.webContents.send(
+      IPC_CHANNELS.scheduleOpenNewRequested,
+      pendingNewScheduleDate
+    )
+    pendingNewSchedule = false
+    pendingNewScheduleDate = undefined
+  }
+}
+
 const quitApp = (): void => {
   isQuitting = true
   app.quit()
@@ -136,7 +190,19 @@ if (!hasSingleInstanceLock) {
       getFoundationWindow: () => mainWindow,
       showPet: () => showPet(),
       hidePet,
+      openScheduleDiary: () => openScheduleDiary(false),
+      openNewSchedule: () => openScheduleDiary(true),
       quitApp
+    })
+    registerScheduleIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow
+      ],
+      getScheduleDiaryWindow: () => scheduleDiaryWindow,
+      openScheduleDiary,
+      scheduleDiaryReady: markScheduleDiaryReady
     })
 
     ensurePetWindow()
@@ -144,6 +210,8 @@ if (!hasSingleInstanceLock) {
       isPetVisible: () => isWindowAlive(petWindow) && petWindow.isVisible(),
       showPet: () => showPet(),
       hidePet,
+      openScheduleDiary: () => openScheduleDiary(false),
+      openNewSchedule: () => openScheduleDiary(true),
       showFoundation: showFoundationWindow,
       quitApp
     })

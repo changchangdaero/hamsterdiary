@@ -4,10 +4,13 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles.css'
 
-const isPetWindow =
-  new URLSearchParams(window.location.search).get('window') === 'pet'
+const windowName = new URLSearchParams(window.location.search).get('window')
 document.documentElement.classList.add(
-  isPetWindow ? 'pet-document' : 'foundation-document'
+  windowName === 'pet'
+    ? 'pet-document'
+    : windowName === 'schedule-diary'
+      ? 'schedule-document'
+      : 'foundation-document'
 )
 
 createRoot(document.getElementById('root')!).render(

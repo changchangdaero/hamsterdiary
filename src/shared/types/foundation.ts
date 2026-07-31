@@ -10,6 +10,12 @@ import type {
   PetMessagePayload,
   ResolvedPetMessage
 } from './pet'
+import type {
+  Schedule,
+  ScheduleDraft,
+  SetScheduleCompletedPayload,
+  UpdateSchedulePayload
+} from './schedule'
 
 export interface RuntimeVersions {
   electron: string
@@ -43,4 +49,17 @@ export interface DesktopPetAPI {
   ) => () => void
   onPetMessageHidden: (listener: () => void) => () => void
   onPetWindowHidden: (listener: () => void) => () => void
+  listSchedules: () => Promise<Schedule[]>
+  createSchedule: (draft: ScheduleDraft) => Promise<Schedule[]>
+  updateSchedule: (payload: UpdateSchedulePayload) => Promise<Schedule[]>
+  deleteSchedule: (id: string) => Promise<Schedule[]>
+  setScheduleCompleted: (
+    payload: SetScheduleCompletedPayload
+  ) => Promise<Schedule[]>
+  openScheduleDiary: () => Promise<void>
+  openNewSchedule: (date?: string) => Promise<void>
+  notifyScheduleDiaryReady: () => void
+  onScheduleOpenNewRequested: (
+    listener: (date?: string) => void
+  ) => () => void
 }

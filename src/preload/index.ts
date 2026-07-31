@@ -51,7 +51,27 @@ const desktopPetAPI: DesktopPetAPI = {
   onPetMessageHidden: (listener) =>
     subscribeWithoutPayload(IPC_CHANNELS.petMessageHidden, listener),
   onPetWindowHidden: (listener) =>
-    subscribeWithoutPayload(IPC_CHANNELS.petWindowHidden, listener)
+    subscribeWithoutPayload(IPC_CHANNELS.petWindowHidden, listener),
+  listSchedules: () => ipcRenderer.invoke(IPC_CHANNELS.listSchedules),
+  createSchedule: (draft) =>
+    ipcRenderer.invoke(IPC_CHANNELS.createSchedule, draft),
+  updateSchedule: (payload) =>
+    ipcRenderer.invoke(IPC_CHANNELS.updateSchedule, payload),
+  deleteSchedule: (id) =>
+    ipcRenderer.invoke(IPC_CHANNELS.deleteSchedule, id),
+  setScheduleCompleted: (payload) =>
+    ipcRenderer.invoke(IPC_CHANNELS.setScheduleCompleted, payload),
+  openScheduleDiary: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.openScheduleDiary),
+  openNewSchedule: (date) =>
+    ipcRenderer.invoke(IPC_CHANNELS.openNewSchedule, date),
+  notifyScheduleDiaryReady: () =>
+    ipcRenderer.send(IPC_CHANNELS.scheduleDiaryReady),
+  onScheduleOpenNewRequested: (listener) =>
+    subscribe<string | undefined>(
+      IPC_CHANNELS.scheduleOpenNewRequested,
+      listener
+    )
 }
 
 contextBridge.exposeInMainWorld('desktopPetAPI', desktopPetAPI)
