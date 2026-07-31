@@ -1,11 +1,18 @@
 // 앱 수명 주기, 단일 인스턴스, 펫 창, 트레이 초기화를 담당하는 main 진입 파일입니다.
-import { app, BrowserWindow, screen } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  Notification,
+  powerMonitor,
+  screen
+} from 'electron'
 import { registerFoundationIpc } from './ipc/registerFoundationIpc'
 import {
   registerPetIpc,
   type PetIpcController
 } from './ipc/registerPetIpc'
 import { registerScheduleIpc } from './ipc/registerScheduleIpc'
+import { registerReminderIpc } from './ipc/registerReminderIpc'
 import { runtimeStore, settingsStore } from './stores'
 import {
   createAppTray,
@@ -14,6 +21,7 @@ import {
 import { createMainWindow } from './windows/createMainWindow'
 import { createPetWindow } from './windows/createPetWindow'
 import { createScheduleDiaryWindow } from './windows/createScheduleDiaryWindow'
+import { createSettingsWindow } from './windows/createSettingsWindow'
 import {
   isPetPositionVisible,
   migratePetPosition,
@@ -21,12 +29,18 @@ import {
   resolvePetPosition
 } from './windows/petPosition'
 import { IPC_CHANNELS } from '../shared/ipcChannels'
+import {
+  NotificationScheduler,
+  type PetNotificationRequest
+} from './notifications/notificationScheduler'
 
 let mainWindow: BrowserWindow | null = null
 let petWindow: BrowserWindow | null = null
 let scheduleDiaryWindow: BrowserWindow | null = null
+let settingsWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
 let petIpcController: PetIpcController | null = null
+let notificationScheduler: NotificationScheduler | null = null
 let isQuitting = false
 let isScheduleDiaryReady = false
 let pendingNewSchedule = false
@@ -123,6 +137,54 @@ const showFoundationWindow = (): void => {
   mainWindow.focus()
 }
 
+const openSettingsWindow = (): void => {
+  if (!isWindowAlive(settingsWindow)) {
+    settingsWindow = createSettingsWindow()
+    settingsWindow.once('closed', () => {
+      settingsWindow = null
+    })
+    return
+  }
+  if (settingsWindow.isMinimized()) {
+    settingsWindow.restore()
+  }
+  settingsWindow.show()
+  settingsWindow.focus()
+}
+
+const showPetNotification = (request: PetNotificationRequest): void => {
+  const window = showPet(true)
+  const deliver = (): void => {
+    if (window.isDestroyed()) {
+      return
+    }
+    window.webContents.send(IPC_CHANNELS.petEmotionChanged, 'happy')
+    const messageTimer = setTimeout(() => {
+      if (!window.isDestroyed()) {
+        window.webContents.send(IPC_CHANNELS.petMessageShown, {
+          text: request.message,
+          finalEmotion: 'happy',
+          typingSpeed: 28,
+          visibleDuration: 6_000
+        })
+      }
+    }, 450)
+    messageTimer.unref()
+  }
+  if (window.webContents.isLoadingMainFrame()) {
+    window.webContents.once('did-finish-load', deliver)
+  } else {
+    deliver()
+  }
+
+  if (request.showOsNotification && Notification.isSupported()) {
+    new Notification({
+      title: request.title,
+      body: request.message
+    }).show()
+  }
+}
+
 const openScheduleDiary = (openNew = false, date?: string): void => {
   if (openNew) {
     pendingNewSchedule = true
@@ -184,7 +246,12 @@ if (!hasSingleInstanceLock) {
   })
 
   void app.whenReady().then(() => {
+    app.setAppUserModelId('com.example.desktoppetscheduler')
     registerFoundationIpc()
+    notificationScheduler = new NotificationScheduler({
+      notify: showPetNotification
+    })
+    notificationScheduler.start()
     petIpcController = registerPetIpc({
       getPetWindow: () => petWindow,
       getFoundationWindow: () => mainWindow,
@@ -192,17 +259,28 @@ if (!hasSingleInstanceLock) {
       hidePet,
       openScheduleDiary: () => openScheduleDiary(false),
       openNewSchedule: () => openScheduleDiary(true),
+      openSettings: openSettingsWindow,
       quitApp
     })
     registerScheduleIpc({
       getTrustedWindows: () => [
         mainWindow,
         petWindow,
-        scheduleDiaryWindow
+        scheduleDiaryWindow,
+        settingsWindow
       ],
       getScheduleDiaryWindow: () => scheduleDiaryWindow,
       openScheduleDiary,
       scheduleDiaryReady: markScheduleDiaryReady
+    })
+    registerReminderIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow
+      ],
+      scheduler: notificationScheduler
     })
 
     ensurePetWindow()
@@ -213,6 +291,7 @@ if (!hasSingleInstanceLock) {
       openScheduleDiary: () => openScheduleDiary(false),
       openNewSchedule: () => openScheduleDiary(true),
       showFoundation: showFoundationWindow,
+      openSettings: openSettingsWindow,
       quitApp
     })
 
@@ -236,6 +315,10 @@ if (!hasSingleInstanceLock) {
     screen.on('display-metrics-changed', validateCurrentPetPosition)
     screen.on('display-added', validateCurrentPetPosition)
     screen.on('display-removed', validateCurrentPetPosition)
+    powerMonitor.on('resume', () => {
+      notificationScheduler?.rescheduleSchedules()
+      notificationScheduler?.rescheduleRepeating()
+    })
 
     if (settingsStore.get('petEnabled')) {
       showPet()
@@ -246,6 +329,7 @@ if (!hasSingleInstanceLock) {
 
   app.on('before-quit', () => {
     isQuitting = true
+    notificationScheduler?.dispose()
   })
 
   app.on('window-all-closed', () => {

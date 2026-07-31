@@ -10,7 +10,9 @@ document.documentElement.classList.add(
     ? 'pet-document'
     : windowName === 'schedule-diary'
       ? 'schedule-document'
-      : 'foundation-document'
+      : windowName === 'settings'
+        ? 'settings-document'
+        : 'foundation-document'
 )
 
 createRoot(document.getElementById('root')!).render(

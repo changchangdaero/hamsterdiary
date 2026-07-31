@@ -2,6 +2,7 @@
 import FoundationWindow from './windows/FoundationWindow'
 import PetWindow from './windows/PetWindow'
 import ScheduleDiaryWindow from './windows/ScheduleDiaryWindow'
+import SettingsWindow from './windows/SettingsWindow'
 
 function App(): React.JSX.Element {
   const windowName = new URLSearchParams(window.location.search).get('window')
@@ -11,6 +12,9 @@ function App(): React.JSX.Element {
   }
   if (windowName === 'schedule-diary') {
     return <ScheduleDiaryWindow />
+  }
+  if (windowName === 'settings') {
+    return <SettingsWindow />
   }
   return <FoundationWindow />
 }

@@ -1,5 +1,6 @@
 // 세 electron-store 파일에 저장되는 데이터 구조를 정의하는 파일입니다.
 import type { Schedule } from './schedule'
+import type { ReminderSettings } from './notifications'
 export interface PetPosition {
   x: number
   y: number
@@ -9,6 +10,7 @@ export interface SettingsStoreData {
   dataVersion: number
   petEnabled: boolean
   alwaysOnTop: boolean
+  reminders: ReminderSettings
 }
 
 export interface SchedulesStoreData {

@@ -1381,3 +1381,153 @@ dd {
     display: none;
   }
 }
+
+/* 반복 리마인더를 편집하는 별도 설정 창의 다크 UI입니다. */
+.settings-document {
+  color: #eceef2;
+  background: #1f2023;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+.settings-document body,
+.settings-document #root {
+  min-height: 100vh;
+  margin: 0;
+  background: #1f2023;
+}
+
+.settings-document button,
+.settings-document input {
+  font: inherit;
+}
+
+.reminder-settings {
+  width: min(620px, 100%);
+  margin: 0 auto;
+  padding: 28px;
+}
+
+.reminder-settings > header {
+  margin-bottom: 22px;
+}
+
+.reminder-settings > header p {
+  margin: 0 0 5px;
+  color: #8d9fe9;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reminder-settings > header h1 {
+  margin: 0 0 6px;
+  color: #f3f3f4;
+}
+
+.reminder-settings > header span,
+.reminder-setting-card p {
+  color: #a8abb2;
+}
+
+.reminder-setting-card {
+  margin-bottom: 14px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 12px;
+  padding: 18px;
+  background: #27292e;
+}
+
+.setting-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.setting-card-heading h2 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.setting-card-heading p {
+  margin: 0 0 14px;
+  font-size: 0.82rem;
+}
+
+.reminder-setting-card label {
+  display: grid;
+  gap: 6px;
+  color: #d9dbe0;
+  font-size: 0.86rem;
+}
+
+.reminder-setting-card input[type="number"] {
+  width: 110px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 7px;
+  padding: 8px 9px;
+  color: #f2f2f3;
+  background: #202226;
+  color-scheme: dark;
+}
+
+.setting-switch,
+.setting-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.setting-switch input,
+.setting-checkbox input {
+  accent-color: #7d8fe8;
+}
+
+.reminder-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.reminder-settings button {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 13px;
+  color: #fff;
+  background: #7d8fe8;
+  cursor: pointer;
+}
+
+.reminder-settings button.secondary {
+  color: #dfe1e7;
+  background: #353840;
+}
+
+.quiet-hours-row {
+  display: flex;
+  align-items: end;
+  gap: 9px;
+}
+
+.quiet-hours-row span {
+  padding-bottom: 8px;
+  color: #a8abb2;
+}
+
+.settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.settings-footer p {
+  min-height: 20px;
+  margin: 0;
+  color: #b9c3f1;
+  font-size: 0.84rem;
+}
