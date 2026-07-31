@@ -34,6 +34,8 @@
 }
 
 .pet-window {
+  --pet-sprite-height: 200px;
+
   position: relative;
   width: 100%;
   height: 100%;
@@ -112,7 +114,7 @@
 .speech-bubble {
   position: absolute;
   z-index: 2;
-  top: 20px;
+  bottom: calc(var(--pet-sprite-height) - 9px);
   left: 50%;
   width: max-content;
   min-width: 170px;
