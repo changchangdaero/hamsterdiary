@@ -22,5 +22,9 @@ export const IPC_CHANNELS = {
   openScheduleDiary: 'schedule:open-diary',
   openNewSchedule: 'schedule:open-new',
   scheduleDiaryReady: 'schedule:diary-ready',
-  scheduleOpenNewRequested: 'schedule:event-open-new-requested'
+  scheduleOpenNewRequested: 'schedule:event-open-new-requested',
+  getReminderSettings: 'reminder:get-settings',
+  updateReminderSettings: 'reminder:update-settings',
+  snoozeReminder: 'reminder:snooze',
+  muteReminderForToday: 'reminder:mute-today'
 } as const

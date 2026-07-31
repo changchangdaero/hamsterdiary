@@ -71,7 +71,15 @@ const desktopPetAPI: DesktopPetAPI = {
     subscribe<string | undefined>(
       IPC_CHANNELS.scheduleOpenNewRequested,
       listener
-    )
+    ),
+  getReminderSettings: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.getReminderSettings),
+  updateReminderSettings: (settings) =>
+    ipcRenderer.invoke(IPC_CHANNELS.updateReminderSettings, settings),
+  snoozeReminder: (payload) =>
+    ipcRenderer.invoke(IPC_CHANNELS.snoozeReminder, payload),
+  muteReminderForToday: (payload) =>
+    ipcRenderer.invoke(IPC_CHANNELS.muteReminderForToday, payload)
 }
 
 contextBridge.exposeInMainWorld('desktopPetAPI', desktopPetAPI)

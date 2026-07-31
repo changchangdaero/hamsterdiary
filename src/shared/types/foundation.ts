@@ -16,6 +16,10 @@ import type {
   SetScheduleCompletedPayload,
   UpdateSchedulePayload
 } from './schedule'
+import type {
+  ReminderControlPayload,
+  ReminderSettings
+} from './notifications'
 
 export interface RuntimeVersions {
   electron: string
@@ -62,4 +66,10 @@ export interface DesktopPetAPI {
   onScheduleOpenNewRequested: (
     listener: (date?: string) => void
   ) => () => void
+  getReminderSettings: () => Promise<ReminderSettings>
+  updateReminderSettings: (
+    settings: ReminderSettings
+  ) => Promise<ReminderSettings>
+  snoozeReminder: (payload: ReminderControlPayload) => Promise<void>
+  muteReminderForToday: (payload: ReminderControlPayload) => Promise<void>
 }

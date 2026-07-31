@@ -9,6 +9,7 @@ interface CreateAppTrayOptions {
   openScheduleDiary: () => void
   openNewSchedule: () => void
   showFoundation: () => void
+  openSettings: () => void
   quitApp: () => void
 }
 
@@ -50,7 +51,7 @@ export const createAppTray = (
         },
         { type: 'separator' },
         { label: '기반 확인 창 열기', click: options.showFoundation },
-        { label: '설정', enabled: false },
+        { label: '설정', click: options.openSettings },
         {
           label: '앱 종료',
           click: options.quitApp
