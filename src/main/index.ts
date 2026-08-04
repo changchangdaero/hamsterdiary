@@ -20,19 +20,17 @@ import {
 } from './tray/createAppTray'
 import { createMainWindow } from './windows/createMainWindow'
 import { createPetWindow } from './windows/createPetWindow'
-import {
-  createPetScheduleInputWindow,
-  positionPetScheduleInputWindow
-} from './windows/createPetScheduleInputWindow'
 import { createScheduleDiaryWindow } from './windows/createScheduleDiaryWindow'
 import { createSettingsWindow } from './windows/createSettingsWindow'
 import {
   isPetPositionVisible,
   migratePetPosition,
   PET_WINDOW_LAYOUT_VERSION,
+  PET_WINDOW_SIZE,
   resolvePetPosition
 } from './windows/petPosition'
 import { IPC_CHANNELS } from '../shared/ipcChannels'
+import type { PetScheduleInputPlacement } from '../shared/types/pet'
 import {
   NotificationScheduler,
   type PetNotificationRequest
@@ -40,7 +38,6 @@ import {
 
 let mainWindow: BrowserWindow | null = null
 let petWindow: BrowserWindow | null = null
-let petScheduleInputWindow: BrowserWindow | null = null
 let scheduleDiaryWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
@@ -50,7 +47,12 @@ let isQuitting = false
 let isScheduleDiaryReady = false
 let pendingNewSchedule = false
 let pendingNewScheduleDate: string | undefined
+let petScheduleInputPlacement: PetScheduleInputPlacement | null = null
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
+
+const PET_SCHEDULE_INPUT_EXTRA_WIDTH = 400
+const PET_SCHEDULE_INPUT_WINDOW_WIDTH =
+  PET_WINDOW_SIZE.width + PET_SCHEDULE_INPUT_EXTRA_WIDTH
 
 const isWindowAlive = (
   window: BrowserWindow | null
@@ -61,10 +63,29 @@ const refreshTrayMenu = (): void => {
 }
 
 const closePetScheduleInput = (): void => {
-  if (isWindowAlive(petScheduleInputWindow)) {
-    petScheduleInputWindow.close()
+  if (!petScheduleInputPlacement || !isWindowAlive(petWindow)) {
+    petScheduleInputPlacement = null
+    return
   }
-  petScheduleInputWindow = null
+
+  const expandedBounds = petWindow.getBounds()
+  const compactX = Math.round(
+    expandedBounds.x +
+      petScheduleInputPlacement.petCenterX -
+      PET_WINDOW_SIZE.width / 2
+  )
+  const compactY = Math.round(expandedBounds.y)
+  petScheduleInputPlacement = null
+  petWindow.setBounds(
+    {
+      x: compactX,
+      y: compactY,
+      ...PET_WINDOW_SIZE
+    },
+    false
+  )
+  runtimeStore.set('petPosition', { x: compactX, y: compactY })
+  petWindow.webContents.send(IPC_CHANNELS.petScheduleInputClosed)
 }
 
 const ensurePetWindow = (): BrowserWindow => {
@@ -136,27 +157,53 @@ const hidePet = (): void => {
 }
 
 const togglePetScheduleInput = (): void => {
-  if (isWindowAlive(petScheduleInputWindow)) {
+  if (petScheduleInputPlacement) {
     closePetScheduleInput()
     return
   }
 
   const currentPetWindow = showPet()
-  const inputWindow = createPetScheduleInputWindow(currentPetWindow)
-  petScheduleInputWindow = inputWindow
-
-  const followPet = (): void => {
-    if (!inputWindow.isDestroyed()) {
-      positionPetScheduleInputWindow(currentPetWindow, inputWindow)
-    }
+  const compactBounds = currentPetWindow.getBounds()
+  const { workArea } = screen.getDisplayMatching(compactBounds)
+  const workAreaRight = workArea.x + workArea.width
+  const rightFits =
+    compactBounds.x + PET_SCHEDULE_INPUT_WINDOW_WIDTH <= workAreaRight
+  const leftFits =
+    compactBounds.x - PET_SCHEDULE_INPUT_EXTRA_WIDTH >= workArea.x
+  const rightSpace = workAreaRight - (compactBounds.x + compactBounds.width)
+  const leftSpace = compactBounds.x - workArea.x
+  const side: PetScheduleInputPlacement['side'] =
+    rightFits || (!leftFits && rightSpace >= leftSpace) ? 'right' : 'left'
+  const desiredX =
+    side === 'right'
+      ? compactBounds.x
+      : compactBounds.x - PET_SCHEDULE_INPUT_EXTRA_WIDTH
+  const maximumX = workAreaRight - PET_SCHEDULE_INPUT_WINDOW_WIDTH
+  const expandedX = Math.round(
+    Math.min(Math.max(desiredX, workArea.x), maximumX)
+  )
+  const placement: PetScheduleInputPlacement = {
+    side,
+    petCenterX:
+      compactBounds.x + PET_WINDOW_SIZE.width / 2 - expandedX
   }
-  currentPetWindow.on('move', followPet)
-  inputWindow.once('closed', () => {
-    currentPetWindow.removeListener('move', followPet)
-    if (petScheduleInputWindow === inputWindow) {
-      petScheduleInputWindow = null
-    }
-  })
+
+  petScheduleInputPlacement = placement
+  currentPetWindow.setBounds(
+    {
+      x: expandedX,
+      y: compactBounds.y,
+      width: PET_SCHEDULE_INPUT_WINDOW_WIDTH,
+      height: PET_WINDOW_SIZE.height
+    },
+    false
+  )
+  currentPetWindow.setIgnoreMouseEvents(false)
+  currentPetWindow.webContents.send(
+    IPC_CHANNELS.petScheduleInputOpened,
+    placement
+  )
+  currentPetWindow.focus()
 }
 
 const showFoundationWindow = (): void => {
@@ -298,6 +345,7 @@ if (!hasSingleInstanceLock) {
       openScheduleDiary: () => openScheduleDiary(false),
       openNewSchedule: () => openScheduleDiary(true),
       togglePetScheduleInput,
+      closePetScheduleInput,
       openSettings: openSettingsWindow,
       quitApp
     })
@@ -305,7 +353,6 @@ if (!hasSingleInstanceLock) {
       getTrustedWindows: () => [
         mainWindow,
         petWindow,
-        petScheduleInputWindow,
         scheduleDiaryWindow,
         settingsWindow
       ],

@@ -33,125 +33,6 @@
   user-select: none;
 }
 
-.pet-input-document,
-.pet-input-document body,
-.pet-input-document #root {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  background: transparent;
-}
-
-.pet-input-document {
-  color: #f4f4f5;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-}
-
-.pet-input-document *,
-.pet-input-document *::before,
-.pet-input-document *::after {
-  box-sizing: border-box;
-}
-
-.pet-schedule-input {
-  width: 100%;
-  height: 100%;
-  padding: 16px;
-  border: 1px solid #3f3f46;
-  border-radius: 12px;
-  background: #111113;
-}
-
-.pet-schedule-input header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.pet-schedule-input button,
-.pet-schedule-input input {
-  border: 1px solid #3f3f46;
-  border-radius: 7px;
-  color: #f4f4f5;
-  background: #1c1c1f;
-  font: inherit;
-}
-
-.pet-schedule-input button {
-  padding: 8px 11px;
-  cursor: pointer;
-}
-
-.pet-schedule-input button:hover {
-  background: #29292d;
-}
-
-.pet-schedule-input button:disabled {
-  cursor: wait;
-  opacity: 0.6;
-}
-
-.pet-schedule-input header button {
-  width: 30px;
-  height: 30px;
-  border: 0;
-  padding: 0;
-  color: #a1a1aa;
-  background: transparent;
-  font-size: 20px;
-}
-
-.pet-schedule-query {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-}
-
-.pet-schedule-input input {
-  width: 100%;
-  min-width: 0;
-  padding: 9px 10px;
-  color-scheme: dark;
-  outline: none;
-}
-
-.pet-schedule-input input:focus {
-  border-color: #71717a;
-}
-
-.pet-schedule-preview {
-  display: grid;
-  gap: 9px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #303034;
-}
-
-.pet-schedule-preview > div {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.pet-schedule-preview p,
-.pet-schedule-error {
-  margin: 0;
-  color: #d4b87f;
-  font-size: 12px;
-}
-
-.pet-schedule-preview > button {
-  justify-self: end;
-}
-
-.pet-schedule-error {
-  margin-top: 10px;
-}
-
 .pet-window {
   --pet-sprite-height: 200px;
 
@@ -164,7 +45,7 @@
 
 .pet-stage {
   position: absolute;
-  left: 50%;
+  left: var(--pet-stage-center-x, 50%);
   bottom: 0;
   width: 220px;
   height: 260px;
@@ -234,7 +115,7 @@
   position: absolute;
   z-index: 2;
   bottom: calc(var(--pet-sprite-height) - 9px);
-  left: 50%;
+  left: var(--pet-stage-center-x, 50%);
   width: max-content;
   min-width: 170px;
   max-width: 300px;
@@ -620,6 +501,139 @@ dd {
 .schedule-filters button {
   color: #75523d;
   background: transparent;
+}
+
+.pet-inline-input {
+  position: absolute;
+  z-index: 4;
+  bottom: 125px;
+  width: 370px;
+  padding: 11px;
+  border: 1px solid rgb(200 149 106 / 65%);
+  border-radius: 14px;
+  color: #f4e8d8;
+  background: #16110c;
+  font: 500 13px/1.3 ui-sans-serif, system-ui, sans-serif;
+}
+
+.pet-inline-input.is-right {
+  left: calc(var(--pet-stage-center-x) + 122px);
+}
+
+.pet-inline-input.is-left {
+  left: calc(var(--pet-stage-center-x) - 492px);
+}
+
+.pet-inline-input::before,
+.pet-inline-input::after {
+  position: absolute;
+  bottom: 38px;
+  width: 0;
+  height: 0;
+  content: "";
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+
+.pet-inline-input.is-right::before {
+  left: -11px;
+  border-right: 11px solid #c8956a;
+}
+
+.pet-inline-input.is-right::after {
+  left: -9px;
+  border-right: 10px solid #16110c;
+}
+
+.pet-inline-input.is-left::before {
+  right: -11px;
+  border-left: 11px solid #c8956a;
+}
+
+.pet-inline-input.is-left::after {
+  right: -9px;
+  border-left: 10px solid #16110c;
+}
+
+.pet-inline-input input,
+.pet-inline-input button {
+  min-width: 0;
+  border: 1px solid #49382a;
+  border-radius: 7px;
+  color: #f4e8d8;
+  background: #211a14;
+  font: inherit;
+}
+
+.pet-inline-input input {
+  width: 100%;
+  padding: 8px 9px;
+  color-scheme: dark;
+  outline: none;
+}
+
+.pet-inline-input input:focus {
+  border-color: #c8956a;
+}
+
+.pet-inline-input button {
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.pet-inline-input button.confirm,
+.pet-inline-preview > button {
+  border-color: #c8956a;
+  color: #21150d;
+  background: #c8956a;
+}
+
+.pet-inline-input button.close {
+  border-color: transparent;
+  padding: 4px 7px;
+  color: #cbb9a6;
+  background: transparent;
+  font-size: 18px;
+}
+
+.pet-inline-input button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.pet-inline-query {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+}
+
+.pet-inline-preview {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid #49382a;
+}
+
+.pet-inline-preview > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.pet-inline-preview p,
+.pet-inline-error {
+  margin: 0;
+  color: #d8b98f;
+  font-size: 11px;
+}
+
+.pet-inline-preview > button {
+  justify-self: end;
+}
+
+.pet-inline-error {
+  margin-top: 8px;
 }
 
 .schedule-filters button.active {

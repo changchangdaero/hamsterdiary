@@ -4,6 +4,7 @@ import { IPC_CHANNELS } from '../shared/ipcChannels'
 import type { DesktopPetAPI } from '../shared/types/foundation'
 import type {
   PetEmotion,
+  PetScheduleInputPlacement,
   ResolvedPetMessage
 } from '../shared/types/pet'
 
@@ -44,6 +45,15 @@ const desktopPetAPI: DesktopPetAPI = {
   hidePetMessage: () => ipcRenderer.invoke(IPC_CHANNELS.hidePetMessage),
   showPetContextMenu: () =>
     ipcRenderer.send(IPC_CHANNELS.showPetContextMenu),
+  closePetScheduleInput: () =>
+    ipcRenderer.send(IPC_CHANNELS.closePetScheduleInput),
+  onPetScheduleInputOpened: (listener) =>
+    subscribe<PetScheduleInputPlacement>(
+      IPC_CHANNELS.petScheduleInputOpened,
+      listener
+    ),
+  onPetScheduleInputClosed: (listener) =>
+    subscribeWithoutPayload(IPC_CHANNELS.petScheduleInputClosed, listener),
   onPetEmotionChanged: (listener) =>
     subscribe<PetEmotion>(IPC_CHANNELS.petEmotionChanged, listener),
   onPetMessageShown: (listener) =>

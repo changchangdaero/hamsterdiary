@@ -31,6 +31,7 @@ interface RegisterPetIpcOptions {
   openScheduleDiary: () => void
   openNewSchedule: () => void
   togglePetScheduleInput: () => void
+  closePetScheduleInput: () => void
   openSettings: () => void
   quitApp: () => void
 }
@@ -420,11 +421,23 @@ export const registerPetIpc = (
     ]).popup({ window: petWindow })
   }
 
+  const closeScheduleInput = (
+    event: IpcMainEvent,
+    ...args: unknown[]
+  ): void => {
+    const petWindow = options.getPetWindow()
+    if (!isPetSender(event, petWindow) || args.length !== 0) {
+      return
+    }
+    options.closePetScheduleInput()
+  }
+
   ipcMain.on(IPC_CHANNELS.setPetMouseInteractive, setMouseInteractive)
   ipcMain.on(IPC_CHANNELS.beginPetDrag, beginDrag)
   ipcMain.on(IPC_CHANNELS.movePetDrag, moveDrag)
   ipcMain.on(IPC_CHANNELS.endPetDrag, endDrag)
   ipcMain.on(IPC_CHANNELS.showPetContextMenu, showContextMenu)
+  ipcMain.on(IPC_CHANNELS.closePetScheduleInput, closeScheduleInput)
   ipcMain.handle(IPC_CHANNELS.setPetEmotion, setEmotion)
   ipcMain.handle(IPC_CHANNELS.showPetMessage, showMessage)
   ipcMain.handle(IPC_CHANNELS.hidePetMessage, hideMessage)
@@ -439,6 +452,10 @@ export const registerPetIpc = (
     ipcMain.removeListener(IPC_CHANNELS.movePetDrag, moveDrag)
     ipcMain.removeListener(IPC_CHANNELS.endPetDrag, endDrag)
     ipcMain.removeListener(IPC_CHANNELS.showPetContextMenu, showContextMenu)
+    ipcMain.removeListener(
+      IPC_CHANNELS.closePetScheduleInput,
+      closeScheduleInput
+    )
     ipcMain.removeHandler(IPC_CHANNELS.setPetEmotion)
     ipcMain.removeHandler(IPC_CHANNELS.showPetMessage)
     ipcMain.removeHandler(IPC_CHANNELS.hidePetMessage)

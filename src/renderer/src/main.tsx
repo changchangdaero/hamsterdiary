@@ -8,8 +8,6 @@ const windowName = new URLSearchParams(window.location.search).get('window')
 document.documentElement.classList.add(
   windowName === 'pet'
     ? 'pet-document'
-    : windowName === 'pet-schedule-input'
-      ? 'pet-input-document'
     : windowName === 'schedule-diary'
       ? 'schedule-document'
       : windowName === 'settings'

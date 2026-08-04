@@ -8,6 +8,7 @@ import type {
   PetEmotion,
   PetDragMovePayload,
   PetMessagePayload,
+  PetScheduleInputPlacement,
   ResolvedPetMessage
 } from './pet'
 import type {
@@ -47,6 +48,11 @@ export interface DesktopPetAPI {
   showPetMessage: (payload: PetMessagePayload) => Promise<void>
   hidePetMessage: () => Promise<void>
   showPetContextMenu: () => void
+  closePetScheduleInput: () => void
+  onPetScheduleInputOpened: (
+    listener: (placement: PetScheduleInputPlacement) => void
+  ) => () => void
+  onPetScheduleInputClosed: (listener: () => void) => () => void
   onPetEmotionChanged: (listener: (emotion: PetEmotion) => void) => () => void
   onPetMessageShown: (
     listener: (message: ResolvedPetMessage) => void

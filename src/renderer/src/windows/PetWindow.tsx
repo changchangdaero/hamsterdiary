@@ -9,9 +9,11 @@ import {
 import type {
   PetDragMovePayload,
   PetEmotion,
+  PetScheduleInputPlacement,
   ResolvedPetMessage
 } from '../../../shared/types/pet'
 import PetSprite from '../components/PetSprite'
+import PetScheduleInput from '../components/PetScheduleInput'
 import SpeechBubble from '../components/SpeechBubble'
 import {
   preloadPetImages,
@@ -94,6 +96,8 @@ function PetWindow(): React.JSX.Element {
   const [displayedText, setDisplayedText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isBubbleClosing, setIsBubbleClosing] = useState(false)
+  const [scheduleInputPlacement, setScheduleInputPlacement] =
+    useState<PetScheduleInputPlacement | null>(null)
 
   const pointerIdRef = useRef<number | null>(null)
   const pointerStartRef = useRef<PetDragMovePayload | null>(null)
@@ -290,12 +294,20 @@ function PetWindow(): React.JSX.Element {
         closeMessage(false)
       }
     )
+    const unsubscribeScheduleInputOpened =
+      window.desktopPetAPI.onPetScheduleInputOpened(setScheduleInputPlacement)
+    const unsubscribeScheduleInputClosed =
+      window.desktopPetAPI.onPetScheduleInputClosed(() => {
+        setScheduleInputPlacement(null)
+      })
 
     return () => {
       unsubscribeEmotion()
       unsubscribeMessage()
       unsubscribeMessageHidden()
       unsubscribeWindowHidden()
+      unsubscribeScheduleInputOpened()
+      unsubscribeScheduleInputClosed()
       messageSequenceRef.current += 1
       clearMessageTimers()
       cancelRendererDrag()
@@ -354,7 +366,7 @@ function PetWindow(): React.JSX.Element {
       }
     })
     return () => cancelAnimationFrame(frameId)
-  }, [message, isBubbleClosing])
+  }, [message, isBubbleClosing, scheduleInputPlacement])
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent): void => {
@@ -397,6 +409,10 @@ function PetWindow(): React.JSX.Element {
     const payload = toDragPayload(event.screenX, event.screenY)
     if (payload === null) {
       return
+    }
+
+    if (scheduleInputPlacement) {
+      window.desktopPetAPI.closePetScheduleInput()
     }
 
     pointerIdRef.current = event.pointerId
@@ -490,13 +506,28 @@ function PetWindow(): React.JSX.Element {
   }
 
   return (
-    <main className="pet-window">
+    <main
+      className="pet-window"
+      style={
+        scheduleInputPlacement
+          ? ({
+              '--pet-stage-center-x': `${scheduleInputPlacement.petCenterX}px`
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       {message && (
         <SpeechBubble
           text={displayedText}
           isClosing={isBubbleClosing}
           isTyping={isTyping}
           onCompleteTyping={completeTyping}
+        />
+      )}
+      {scheduleInputPlacement && (
+        <PetScheduleInput
+          side={scheduleInputPlacement.side}
+          onClose={() => window.desktopPetAPI.closePetScheduleInput()}
         />
       )}
       <PetSprite

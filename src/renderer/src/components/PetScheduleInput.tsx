@@ -1,11 +1,20 @@
-// 펫 옆에서 자연어 일정을 확인·수정한 뒤 기존 저장 경로로 전달하는 입력 창입니다.
+// 펫 창 내부에서 자연어 일정을 확인·수정해 기존 저장 경로로 전달하는 입력바입니다.
 import { useEffect, useState } from 'react'
+import type { PetScheduleInputPlacement } from '../../../shared/types/pet'
 import { parseSchedule, type ParsedSchedule } from '../scheduleParser'
+
+interface PetScheduleInputProps {
+  side: PetScheduleInputPlacement['side']
+  onClose: () => void
+}
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const TIME_PATTERN = /^\d{2}:\d{2}$/
 
-function PetScheduleInputWindow(): React.JSX.Element {
+function PetScheduleInput({
+  side,
+  onClose
+}: PetScheduleInputProps): React.JSX.Element {
   const [text, setText] = useState('')
   const [preview, setPreview] = useState<ParsedSchedule | null>(null)
   const [error, setError] = useState('')
@@ -14,12 +23,12 @@ function PetScheduleInputWindow(): React.JSX.Element {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
-        window.close()
+        onClose()
       }
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [])
+  }, [onClose])
 
   const parseText = (): void => {
     const normalized = text.trim()
@@ -32,7 +41,10 @@ function PetScheduleInputWindow(): React.JSX.Element {
     setError('')
   }
 
-  const updatePreview = (field: 'title' | 'date' | 'time', value: string): void => {
+  const updatePreview = (
+    field: 'title' | 'date' | 'time',
+    value: string
+  ): void => {
     setPreview((current) =>
       current === null ? null : { ...current, [field]: value }
     )
@@ -61,7 +73,7 @@ function PetScheduleInputWindow(): React.JSX.Element {
         reminderMinutesBefore: 10,
         memo: ''
       })
-      window.close()
+      onClose()
     } catch {
       setError('일정을 저장하지 못했습니다. 입력값을 확인해주세요.')
       setSaving(false)
@@ -69,15 +81,13 @@ function PetScheduleInputWindow(): React.JSX.Element {
   }
 
   return (
-    <main className="pet-schedule-input">
-      <header>
-        <strong>말 걸기</strong>
-        <button type="button" aria-label="입력 창 닫기" onClick={() => window.close()}>
-          ×
-        </button>
-      </header>
-
-      <div className="pet-schedule-query">
+    <section
+      className={`pet-inline-input is-${side}`}
+      data-pet-schedule-input
+      data-interactive-hitbox="true"
+      aria-label="햄스터에게 일정 말하기"
+    >
+      <div className="pet-inline-query">
         <input
           value={text}
           maxLength={200}
@@ -96,11 +106,16 @@ function PetScheduleInputWindow(): React.JSX.Element {
             }
           }}
         />
-        <button type="button" onClick={parseText}>미리보기</button>
+        <button type="button" className="confirm" onClick={parseText}>
+          확인
+        </button>
+        <button type="button" className="close" aria-label="입력바 닫기" onClick={onClose}>
+          ×
+        </button>
       </div>
 
       {preview && (
-        <section className="pet-schedule-preview" aria-label="일정 미리보기">
+        <div className="pet-inline-preview" aria-label="일정 미리보기">
           <input
             value={preview.title}
             maxLength={80}
@@ -129,12 +144,12 @@ function PetScheduleInputWindow(): React.JSX.Element {
           <button type="button" disabled={saving} onClick={() => void save()}>
             {saving ? '저장 중' : '일정 저장'}
           </button>
-        </section>
+        </div>
       )}
 
-      {error && <p className="pet-schedule-error" role="alert">{error}</p>}
-    </main>
+      {error && <p className="pet-inline-error" role="alert">{error}</p>}
+    </section>
   )
 }
 
-export default PetScheduleInputWindow
+export default PetScheduleInput
