@@ -16,6 +16,10 @@ document.documentElement.classList.add(
           ? 'onboarding-document'
           : windowName === 'help'
             ? 'help-document'
+            : windowName === 'pomodoro'
+              ? 'pomodoro-document'
+              : windowName === 'todos'
+                ? 'todo-document'
         : 'foundation-document'
 )
 

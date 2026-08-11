@@ -17,6 +17,9 @@ import { registerReminderIpc } from './ipc/registerReminderIpc'
 import { registerHolidayIpc } from './ipc/registerHolidayIpc'
 import { registerGeminiKeyIpc } from './ipc/registerGeminiKeyIpc'
 import { registerHelpIpc } from './ipc/registerHelpIpc'
+import { registerPomodoroIpc } from './ipc/registerPomodoroIpc'
+import { registerTodoIpc } from './ipc/registerTodoIpc'
+import { registerTodoConversationIpc } from './ipc/registerTodoConversationIpc'
 import { runtimeStore, schedulesStore, settingsStore } from './stores'
 import {
   createAppTray,
@@ -28,7 +31,12 @@ import { createScheduleDiaryWindow } from './windows/createScheduleDiaryWindow'
 import { createSettingsWindow } from './windows/createSettingsWindow'
 import { createOnboardingWindow } from './windows/createOnboardingWindow'
 import { createHelpWindow } from './windows/createHelpWindow'
+import { createPomodoroWindow } from './windows/createPomodoroWindow'
+import { createTodoWindow } from './windows/createTodoWindow'
 import { getGeminiKeyStatus } from './services/geminiKeyService'
+import { PomodoroTimerService } from './services/pomodoroTimerService'
+import type { PomodoroEvent, PomodoroState } from '../shared/types/pomodoro'
+import type { Todo } from '../shared/types/todo'
 import {
   isPetPositionVisible,
   migratePetPosition,
@@ -48,9 +56,12 @@ let petWindow: BrowserWindow | null = null
 let scheduleDiaryWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
 let helpWindow: BrowserWindow | null = null
+let pomodoroWindow: BrowserWindow | null = null
+let todoWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
 let petIpcController: PetIpcController | null = null
 let notificationScheduler: NotificationScheduler | null = null
+let pomodoroTimer: PomodoroTimerService | null = null
 let isQuitting = false
 let isScheduleDiaryReady = false
 let pendingNewSchedule = false
@@ -253,6 +264,123 @@ const closeHelpWindow = (): void => {
   if (isWindowAlive(helpWindow)) helpWindow.close()
 }
 
+const openPomodoroWindow = (): void => {
+  if (!isWindowAlive(pomodoroWindow)) {
+    pomodoroWindow = createPomodoroWindow()
+    pomodoroWindow.once('closed', () => {
+      pomodoroWindow = null
+    })
+    return
+  }
+  if (pomodoroWindow.isMinimized()) pomodoroWindow.restore()
+  pomodoroWindow.show()
+  pomodoroWindow.focus()
+}
+
+const closePomodoroWindow = (): void => {
+  if (isWindowAlive(pomodoroWindow)) pomodoroWindow.close()
+}
+
+const openTodoWindow = (): void => {
+  if (!isWindowAlive(todoWindow)) {
+    todoWindow = createTodoWindow()
+    todoWindow.once('closed', () => {
+      todoWindow = null
+    })
+    return
+  }
+  if (todoWindow.isMinimized()) todoWindow.restore()
+  todoWindow.show()
+  todoWindow.focus()
+}
+
+const closeTodoWindow = (): void => {
+  if (isWindowAlive(todoWindow)) todoWindow.close()
+}
+
+const broadcastTodosChanged = (todos: Todo[]): void => {
+  console.log('[todo:ipc] broadcasting changed todos', { count: todos.length })
+  for (const window of [
+    mainWindow,
+    petWindow,
+    scheduleDiaryWindow,
+    settingsWindow,
+    helpWindow,
+    pomodoroWindow,
+    todoWindow
+  ]) {
+    if (isWindowAlive(window)) {
+      window.webContents.send(IPC_CHANNELS.todosChanged, todos)
+    }
+  }
+}
+
+const showTodoCompletionReaction = (allDone: boolean): void => {
+  const window = showPet(true)
+  const deliver = (): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(IPC_CHANNELS.petMessageShown, {
+      text: allDone ? '다 끝냈다! 정말 대단해~' : '잘했어! 하나씩 같이 해내고 있네.',
+      finalEmotion: allDone ? 'happy' : 'thumbsUp',
+      typingSpeed: 25,
+      visibleDuration: 5_000
+    })
+  }
+  if (window.webContents.isLoadingMainFrame()) {
+    window.webContents.once('did-finish-load', deliver)
+  } else {
+    deliver()
+  }
+}
+
+const broadcastPomodoroChanged = (state: PomodoroState): void => {
+  for (const window of [
+    mainWindow,
+    petWindow,
+    scheduleDiaryWindow,
+    settingsWindow,
+    helpWindow,
+    pomodoroWindow
+  ]) {
+    if (isWindowAlive(window)) {
+      window.webContents.send(IPC_CHANNELS.pomodoroChanged, state)
+    }
+  }
+}
+
+const showPomodoroReaction = (event: PomodoroEvent): void => {
+  const reactions = {
+    'focus-started': {
+      text: '같이 집중해보자! 내가 옆에서 함께할게.',
+      emotion: 'talking' as const
+    },
+    'focus-completed': {
+      text: '수고했어! 잠깐 쉬자~',
+      emotion: 'sleep' as const
+    },
+    'break-completed': {
+      text: '잘 쉬었지? 다시 같이 가볼까?',
+      emotion: 'talking' as const
+    }
+  } satisfies Record<PomodoroEvent, { text: string; emotion: import('../shared/types/pet').PetEmotion }>
+  const reaction = reactions[event]
+  const window = showPet(true)
+  const deliver = (): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(IPC_CHANNELS.petMessageShown, {
+      text: reaction.text,
+      finalEmotion: reaction.emotion,
+      typingSpeed: 26,
+      visibleDuration: 5_500
+    })
+  }
+  if (window.webContents.isLoadingMainFrame()) {
+    window.webContents.once('did-finish-load', deliver)
+  } else {
+    deliver()
+  }
+}
+
 const showPetNotification = (request: PetNotificationRequest): void => {
   const window = showPet(true)
   const deliver = (): void => {
@@ -405,6 +533,10 @@ if (!hasSingleInstanceLock) {
       notify: showPetNotification
     })
     notificationScheduler.start()
+    pomodoroTimer = new PomodoroTimerService({
+      stateChanged: broadcastPomodoroChanged,
+      phaseEvent: showPomodoroReaction
+    })
     petIpcController = registerPetIpc({
       getPetWindow: () => petWindow,
       getFoundationWindow: () => mainWindow,
@@ -416,6 +548,8 @@ if (!hasSingleInstanceLock) {
       closePetScheduleInput,
       openSettings: openSettingsWindow,
       openHelp: openHelpWindow,
+      openPomodoro: openPomodoroWindow,
+      openTodos: openTodoWindow,
       quitApp
     })
     registerScheduleIpc({
@@ -423,7 +557,8 @@ if (!hasSingleInstanceLock) {
         mainWindow,
         petWindow,
         scheduleDiaryWindow,
-        settingsWindow
+        settingsWindow,
+        todoWindow
       ],
       getScheduleDiaryWindow: () => scheduleDiaryWindow,
       openScheduleDiary,
@@ -456,7 +591,9 @@ if (!hasSingleInstanceLock) {
         mainWindow,
         petWindow,
         scheduleDiaryWindow,
-        settingsWindow
+        settingsWindow,
+        helpWindow,
+        pomodoroWindow
       ],
       completeOnboarding: () => {
         if (isWindowAlive(mainWindow)) mainWindow.close()
@@ -475,6 +612,37 @@ if (!hasSingleInstanceLock) {
       openHelp: openHelpWindow,
       closeHelp: closeHelpWindow
     })
+    registerPomodoroIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow,
+        helpWindow,
+        pomodoroWindow
+      ],
+      timer: pomodoroTimer,
+      openPomodoro: openPomodoroWindow,
+      closePomodoro: closePomodoroWindow
+    })
+    registerTodoIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow,
+        todoWindow
+      ],
+      todosChanged: broadcastTodosChanged,
+      todoCompleted: showTodoCompletionReaction,
+      openTodos: openTodoWindow,
+      closeTodos: closeTodoWindow
+    })
+    registerTodoConversationIpc({
+      getPetWindow: () => petWindow,
+      todosChanged: broadcastTodosChanged,
+      todoCompleted: showTodoCompletionReaction
+    })
 
     if (getGeminiKeyStatus().configured) {
       ensurePetWindow()
@@ -490,6 +658,8 @@ if (!hasSingleInstanceLock) {
       showFoundation: showFoundationWindow,
       openSettings: openSettingsWindow,
       openHelp: openHelpWindow,
+      openPomodoro: openPomodoroWindow,
+      openTodos: openTodoWindow,
       quitApp
     })
 
@@ -533,6 +703,7 @@ if (!hasSingleInstanceLock) {
   app.on('before-quit', () => {
     isQuitting = true
     notificationScheduler?.dispose()
+    pomodoroTimer?.dispose()
   })
 
   app.on('window-all-closed', () => {

@@ -245,6 +245,20 @@ function ScheduleDiaryWindow(): React.JSX.Element {
           <button
             type="button"
             className="secondary"
+            onClick={() => void window.desktopPetAPI.openTodos()}
+          >
+            ✓ 할일
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void window.desktopPetAPI.openPomodoro()}
+          >
+            ◷ 집중
+          </button>
+          <button
+            type="button"
+            className="secondary"
             onClick={() => void window.desktopPetAPI.openHelp()}
           >
             ? 도움말

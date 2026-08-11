@@ -7,6 +7,8 @@ import type {
   PetScheduleInputPlacement,
   ResolvedPetMessage
 } from '../shared/types/pet'
+import type { PomodoroState } from '../shared/types/pomodoro'
+import type { Todo } from '../shared/types/todo'
 
 const subscribe = <T>(
   channel: string,
@@ -101,6 +103,29 @@ const desktopPetAPI: DesktopPetAPI = {
   openSettings: () => ipcRenderer.invoke(IPC_CHANNELS.openSettings),
   openHelp: () => ipcRenderer.invoke(IPC_CHANNELS.openHelp),
   closeHelp: () => ipcRenderer.invoke(IPC_CHANNELS.closeHelp),
+  getPomodoroState: () => ipcRenderer.invoke(IPC_CHANNELS.getPomodoroState),
+  startPomodoro: () => ipcRenderer.invoke(IPC_CHANNELS.startPomodoro),
+  pausePomodoro: () => ipcRenderer.invoke(IPC_CHANNELS.pausePomodoro),
+  resetPomodoro: () => ipcRenderer.invoke(IPC_CHANNELS.resetPomodoro),
+  getPomodoroSettings: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.getPomodoroSettings),
+  updatePomodoroSettings: (settings) =>
+    ipcRenderer.invoke(IPC_CHANNELS.updatePomodoroSettings, settings),
+  openPomodoro: () => ipcRenderer.invoke(IPC_CHANNELS.openPomodoro),
+  closePomodoro: () => ipcRenderer.invoke(IPC_CHANNELS.closePomodoro),
+  onPomodoroChanged: (listener) =>
+    subscribe<PomodoroState>(IPC_CHANNELS.pomodoroChanged, listener),
+  listTodos: () => ipcRenderer.invoke(IPC_CHANNELS.listTodos),
+  createTodo: (text) => ipcRenderer.invoke(IPC_CHANNELS.createTodo, text),
+  setTodoDone: (payload) =>
+    ipcRenderer.invoke(IPC_CHANNELS.setTodoDone, payload),
+  deleteTodo: (id) => ipcRenderer.invoke(IPC_CHANNELS.deleteTodo, id),
+  converseAboutTodo: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.converseAboutTodo, request),
+  openTodos: () => ipcRenderer.invoke(IPC_CHANNELS.openTodos),
+  closeTodos: () => ipcRenderer.invoke(IPC_CHANNELS.closeTodos),
+  onTodosChanged: (listener) =>
+    subscribe<Todo[]>(IPC_CHANNELS.todosChanged, listener),
   getReminderSettings: () =>
     ipcRenderer.invoke(IPC_CHANNELS.getReminderSettings),
   updateReminderSettings: (settings) =>

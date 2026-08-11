@@ -27,6 +27,13 @@ import type {
 } from './scheduleConversation'
 import type { Holiday } from './holiday'
 import type { GeminiKeyStatus } from './geminiKey'
+import type { PomodoroSettings, PomodoroState } from './pomodoro'
+import type {
+  SetTodoDonePayload,
+  Todo,
+  TodoConversationRequest,
+  TodoConversationResponse
+} from './todo'
 
 export interface RuntimeVersions {
   electron: string
@@ -91,6 +98,29 @@ export interface DesktopPetAPI {
   openSettings: () => Promise<void>
   openHelp: () => Promise<void>
   closeHelp: () => Promise<void>
+  getPomodoroState: () => Promise<PomodoroState>
+  startPomodoro: () => Promise<PomodoroState>
+  pausePomodoro: () => Promise<PomodoroState>
+  resetPomodoro: () => Promise<PomodoroState>
+  getPomodoroSettings: () => Promise<PomodoroSettings>
+  updatePomodoroSettings: (
+    settings: PomodoroSettings
+  ) => Promise<PomodoroSettings>
+  openPomodoro: () => Promise<void>
+  closePomodoro: () => Promise<void>
+  onPomodoroChanged: (
+    listener: (state: PomodoroState) => void
+  ) => () => void
+  listTodos: () => Promise<Todo[]>
+  createTodo: (text: string) => Promise<Todo[]>
+  setTodoDone: (payload: SetTodoDonePayload) => Promise<Todo[]>
+  deleteTodo: (id: string) => Promise<Todo[]>
+  converseAboutTodo: (
+    request: TodoConversationRequest
+  ) => Promise<TodoConversationResponse>
+  openTodos: () => Promise<void>
+  closeTodos: () => Promise<void>
+  onTodosChanged: (listener: (todos: Todo[]) => void) => () => void
   getReminderSettings: () => Promise<ReminderSettings>
   updateReminderSettings: (
     settings: ReminderSettings

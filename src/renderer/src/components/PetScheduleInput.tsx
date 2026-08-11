@@ -16,6 +16,7 @@ function PetScheduleInput({
   side,
   onClose
 }: PetScheduleInputProps): React.JSX.Element {
+  const [mode, setMode] = useState<'schedule' | 'todo'>('schedule')
   const [text, setText] = useState('')
   const [reply, setReply] = useState('어떤 일정을 알아볼까?')
   const [history, setHistory] = useState<ScheduleConversationTurn[]>([])
@@ -38,7 +39,8 @@ function PetScheduleInput({
 
   const openManualForm = async (): Promise<void> => {
     try {
-      await window.desktopPetAPI.openNewSchedule()
+      if (mode === 'schedule') await window.desktopPetAPI.openNewSchedule()
+      else await window.desktopPetAPI.openTodos()
       onClose()
     } catch {
       setError('수동 입력 화면도 열지 못했어. 잠시 후 다시 시도해줘.')
@@ -57,24 +59,29 @@ function PetScheduleInput({
     setKeyError(false)
     setText('')
     try {
-      const result = await window.desktopPetAPI.converseAboutSchedule({
-        message,
-        history
-      })
+      const request = { message, history }
+      const result =
+        mode === 'schedule'
+          ? await window.desktopPetAPI.converseAboutSchedule(request)
+          : await window.desktopPetAPI.converseAboutTodo(request)
       setReply(result.reply)
       setHistory((current) => [
         ...current,
         { role: 'user', text: message },
-        { role: 'assistant', text: JSON.stringify(result) }
+        {
+          role: 'assistant',
+          text: mode === 'schedule' ? JSON.stringify(result) : result.reply
+        }
       ])
 
-      if (result.phase === 'completed' || result.phase === 'cancelled') {
+      const isFinished =
+        'phase' in result
+          ? result.phase === 'completed' || result.phase === 'cancelled'
+          : result.completed
+      if (isFinished) {
         setFinished(true)
         setPending(false)
-        closeTimerRef.current = setTimeout(
-          onClose,
-          result.phase === 'completed' ? 5_000 : 4_000
-        )
+        closeTimerRef.current = setTimeout(onClose, 5_000)
         return
       }
     } catch (requestError) {
@@ -104,6 +111,45 @@ function PetScheduleInput({
           {pending ? '생각 중이야…' : reply}
         </p>
         {!finished && (
+          <>
+          <fieldset className="pet-input-mode" aria-label="대화 입력 목적지">
+            <label>
+              <input
+                type="radio"
+                name="pet-input-mode"
+                disabled={pending}
+                checked={mode === 'schedule'}
+                onChange={() => {
+                  setMode('schedule')
+                  setHistory([])
+                  setReply('어떤 일정을 알아볼까?')
+                  setError('')
+                }}
+              />
+              <span>일정</span>
+              <span className="mode-tooltip" role="tooltip">
+                시간이 정해진 일이야 📅 (예: 내일 3시 병원, 금요일 저녁 회식)
+              </span>
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="pet-input-mode"
+                disabled={pending}
+                checked={mode === 'todo'}
+                onChange={() => {
+                  setMode('todo')
+                  setHistory([])
+                  setReply('어떤 할 일을 같이 해볼까?')
+                  setError('')
+                }}
+              />
+              <span>할일</span>
+              <span className="mode-tooltip" role="tooltip">
+                언젠가 해야 할 계획이야 ✅ (예: 우유 사기, 리포트 제출)
+              </span>
+            </label>
+          </fieldset>
           <div className="pet-inline-query">
             <textarea
               value={text}
@@ -134,6 +180,7 @@ function PetScheduleInput({
               보내기
             </button>
           </div>
+          </>
         )}
         {reply === FALLBACK_MESSAGE && (
           <button
