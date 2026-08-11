@@ -25,6 +25,8 @@ import type {
   ScheduleConversationRequest,
   ScheduleConversationResponse
 } from './scheduleConversation'
+import type { Holiday } from './holiday'
+import type { GeminiKeyStatus } from './geminiKey'
 
 export interface RuntimeVersions {
   electron: string
@@ -80,6 +82,15 @@ export interface DesktopPetAPI {
     listener: (date?: string) => void
   ) => () => void
   onSchedulesChanged: (listener: (schedules: Schedule[]) => void) => () => void
+  listHolidays: (years: number[]) => Promise<Holiday[]>
+  getGeminiKeyStatus: () => Promise<GeminiKeyStatus>
+  saveGeminiKey: (key: string) => Promise<GeminiKeyStatus>
+  deleteGeminiKey: () => Promise<GeminiKeyStatus>
+  openGeminiKeyPage: () => Promise<void>
+  completeOnboarding: () => Promise<void>
+  openSettings: () => Promise<void>
+  openHelp: () => Promise<void>
+  closeHelp: () => Promise<void>
   getReminderSettings: () => Promise<ReminderSettings>
   updateReminderSettings: (
     settings: ReminderSettings

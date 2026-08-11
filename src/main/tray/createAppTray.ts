@@ -10,6 +10,7 @@ interface CreateAppTrayOptions {
   openNewSchedule: () => void
   showFoundation: () => void
   openSettings: () => void
+  openHelp: () => void
   quitApp: () => void
 }
 
@@ -52,6 +53,7 @@ export const createAppTray = (
         { type: 'separator' },
         { label: '기반 확인 창 열기', click: options.showFoundation },
         { label: '설정', click: options.openSettings },
+        { label: '도움말', click: options.openHelp },
         {
           label: '앱 종료',
           click: options.quitApp

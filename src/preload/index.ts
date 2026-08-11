@@ -86,6 +86,21 @@ const desktopPetAPI: DesktopPetAPI = {
     ),
   onSchedulesChanged: (listener) =>
     subscribe(IPC_CHANNELS.schedulesChanged, listener),
+  listHolidays: (years) =>
+    ipcRenderer.invoke(IPC_CHANNELS.listHolidays, years),
+  getGeminiKeyStatus: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.getGeminiKeyStatus),
+  saveGeminiKey: (key) =>
+    ipcRenderer.invoke(IPC_CHANNELS.saveGeminiKey, key),
+  deleteGeminiKey: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.deleteGeminiKey),
+  openGeminiKeyPage: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.openGeminiKeyPage),
+  completeOnboarding: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.completeOnboarding),
+  openSettings: () => ipcRenderer.invoke(IPC_CHANNELS.openSettings),
+  openHelp: () => ipcRenderer.invoke(IPC_CHANNELS.openHelp),
+  closeHelp: () => ipcRenderer.invoke(IPC_CHANNELS.closeHelp),
   getReminderSettings: () =>
     ipcRenderer.invoke(IPC_CHANNELS.getReminderSettings),
   updateReminderSettings: (settings) =>

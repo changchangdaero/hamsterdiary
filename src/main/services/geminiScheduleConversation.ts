@@ -1,6 +1,3 @@
-import { app } from 'electron'
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
 import {
   SCHEDULE_CONVERSATION_INTENTS,
   SCHEDULE_CONVERSATION_PHASES,
@@ -9,9 +6,12 @@ import {
 } from '../../shared/types/scheduleConversation'
 import type { Schedule } from '../../shared/types/schedule'
 import type { BatchScheduleResult } from '../ipc/registerScheduleIpc'
+import { fetchGeminiQueued } from './geminiRequestQueue'
+import { getGeminiApiKey } from './geminiKeyService'
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite'
-const GEMINI_TIMEOUT_MS = 45_000
+const GEMINI_TIMEOUT_MS = 75_000
+const MAX_FUNCTION_CALL_ITERATIONS = 3
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -32,6 +32,11 @@ interface GeminiContent {
 
 interface GeminiResponse {
   candidates?: Array<{ content?: GeminiContent }>
+  usageMetadata?: {
+    promptTokenCount?: number
+    candidatesTokenCount?: number
+    totalTokenCount?: number
+  }
 }
 
 interface ScheduleToolContext {
@@ -272,48 +277,6 @@ const initialResponseSchema = {
   }
 }
 
-const readEnvFile = (path: string): Record<string, string> => {
-  try {
-    return Object.fromEntries(
-      readFileSync(path, 'utf8')
-        .split(/\r?\n/u)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0 && !line.startsWith('#'))
-        .flatMap((line) => {
-          const separator = line.indexOf('=')
-          if (separator < 1) return []
-          const key = line.slice(0, separator).trim()
-          let value = line.slice(separator + 1).trim()
-          if (
-            (value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))
-          ) {
-            value = value.slice(1, -1)
-          }
-          return [[key, value]]
-        })
-    )
-  } catch {
-    return {}
-  }
-}
-
-const getApiKey = (): string => {
-  if (process.env.GEMINI_API_KEY?.trim()) {
-    return process.env.GEMINI_API_KEY.trim()
-  }
-  const candidates = [
-    join(process.cwd(), '.env'),
-    join(app.getAppPath(), '.env'),
-    join(dirname(process.execPath), '.env')
-  ]
-  for (const path of new Set(candidates)) {
-    const key = readEnvFile(path).GEMINI_API_KEY?.trim()
-    if (key) return key
-  }
-  throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.')
-}
-
 const systemInstruction = (now: Date): string => `너는 사용자의 일정 비서인 햄스터야.
 친근한 반말 친구처럼 자연스럽고 짧게 말해. 과한 이모지는 쓰지 말고, 필요하면 한 개 이하만 써.
 사용자의 말에서 일정 제목, 날짜, 시간을 파악해. 현재까지 파악한 값은 대화 맥락을 따라 유지하고 사용자가 수정하면 갱신해.
@@ -358,13 +321,30 @@ scope도 판정해. "회의 삭제"처럼 제목만 있고 여러 개일 수 있
 한국어 부정어와 특정 기존 일정 목적어가 있는지 주의해. cancel이면 reply에 햄스터가 대화 취소를 확인하는 친근한 반말 한 문장을 쓰고, 나머지는 reply를 빈 문자열로 둬.`
 
 const readGeminiResponse = async (response: Response): Promise<GeminiResponse> => {
-  if (!response.ok) throw new Error(`Gemini API 오류: ${response.status}`)
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '')
+    if (
+      response.status === 401 ||
+      response.status === 403 ||
+      /API_KEY_INVALID|API key not valid|invalid api key/iu.test(errorBody)
+    ) {
+      throw new Error('[GEMINI_KEY_INVALID] Gemini API 키 인증에 실패했습니다.')
+    }
+    throw new Error(`Gemini API 오류: ${response.status}`)
+  }
   const body = (await response.json()) as GeminiResponse
   console.log('[schedule:conversation] Gemini response received', {
     partTypes:
       body.candidates?.[0]?.content?.parts?.map((part) =>
         part.functionCall ? 'functionCall' : part.text ? 'text' : 'other'
-      ) ?? []
+      ) ?? [],
+    usage: body.usageMetadata
+      ? {
+          inputTokens: body.usageMetadata.promptTokenCount,
+          outputTokens: body.usageMetadata.candidatesTokenCount,
+          totalTokens: body.usageMetadata.totalTokenCount
+        }
+      : undefined
   })
   return body
 }
@@ -387,7 +367,7 @@ const detectIntent = async (
   reply: string
   scope: 'single' | 'batch_all' | 'batch_range' | 'batch_multiple'
 }> => {
-  const response = await fetch(
+  const response = await fetchGeminiQueued(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
     {
       method: 'POST',
@@ -503,7 +483,7 @@ export const converseAboutSchedule = async (
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS)
   try {
-    const apiKey = getApiKey()
+    const apiKey = getGeminiApiKey()
     const intent = await detectIntent(
       request.message,
       request.history,
@@ -559,7 +539,11 @@ export const converseAboutSchedule = async (
       { role: 'user', parts: [{ text: request.message }] }
     ]
     const executedTools: string[] = []
-    for (let iteration = 1; iteration <= 4; iteration += 1) {
+    for (
+      let iteration = 1;
+      iteration <= MAX_FUNCTION_CALL_ITERATIONS;
+      iteration += 1
+    ) {
       const lastTool = executedTools.at(-1)
       const mutationCompleted = executedTools.some((name) =>
         [
@@ -610,7 +594,7 @@ export const converseAboutSchedule = async (
                   }
                 : { mode: 'NONE' }
       const forcesFunction = functionCallingConfig.mode === 'ANY'
-      const response = await fetch(
+      const response = await fetchGeminiQueued(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
         {
           method: 'POST',

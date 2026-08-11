@@ -14,7 +14,10 @@ import {
 import { registerScheduleIpc } from './ipc/registerScheduleIpc'
 import { registerScheduleConversationIpc } from './ipc/registerScheduleConversationIpc'
 import { registerReminderIpc } from './ipc/registerReminderIpc'
-import { runtimeStore, settingsStore } from './stores'
+import { registerHolidayIpc } from './ipc/registerHolidayIpc'
+import { registerGeminiKeyIpc } from './ipc/registerGeminiKeyIpc'
+import { registerHelpIpc } from './ipc/registerHelpIpc'
+import { runtimeStore, schedulesStore, settingsStore } from './stores'
 import {
   createAppTray,
   type AppTrayController
@@ -23,6 +26,9 @@ import { createMainWindow } from './windows/createMainWindow'
 import { createPetWindow } from './windows/createPetWindow'
 import { createScheduleDiaryWindow } from './windows/createScheduleDiaryWindow'
 import { createSettingsWindow } from './windows/createSettingsWindow'
+import { createOnboardingWindow } from './windows/createOnboardingWindow'
+import { createHelpWindow } from './windows/createHelpWindow'
+import { getGeminiKeyStatus } from './services/geminiKeyService'
 import {
   isPetPositionVisible,
   migratePetPosition,
@@ -41,6 +47,7 @@ let mainWindow: BrowserWindow | null = null
 let petWindow: BrowserWindow | null = null
 let scheduleDiaryWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
+let helpWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
 let petIpcController: PetIpcController | null = null
 let notificationScheduler: NotificationScheduler | null = null
@@ -50,10 +57,6 @@ let pendingNewSchedule = false
 let pendingNewScheduleDate: string | undefined
 let petScheduleInputPlacement: PetScheduleInputPlacement | null = null
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
-
-const PET_SCHEDULE_INPUT_EXTRA_WIDTH = 400
-const PET_SCHEDULE_INPUT_WINDOW_WIDTH =
-  PET_WINDOW_SIZE.width + PET_SCHEDULE_INPUT_EXTRA_WIDTH
 
 const isWindowAlive = (
   window: BrowserWindow | null
@@ -87,24 +90,13 @@ const closePetScheduleInput = (): void => {
     return
   }
 
-  const expandedBounds = petWindow.getBounds()
-  const compactX = Math.round(
-    expandedBounds.x +
-      petScheduleInputPlacement.petCenterX -
-      PET_WINDOW_SIZE.width / 2
-  )
-  const compactY = Math.round(expandedBounds.y)
+  const bounds = petWindow.getBounds()
+  console.log('[pet:schedule-input] closing', { bounds })
   petScheduleInputPlacement = null
-  petWindow.setBounds(
-    {
-      x: compactX,
-      y: compactY,
-      ...PET_WINDOW_SIZE
-    },
-    false
-  )
-  runtimeStore.set('petPosition', { x: compactX, y: compactY })
   petWindow.webContents.send(IPC_CHANNELS.petScheduleInputClosed)
+  console.log('[pet:schedule-input] closed', {
+    bounds: petWindow.getBounds()
+  })
 }
 
 const ensurePetWindow = (): BrowserWindow => {
@@ -182,47 +174,23 @@ const togglePetScheduleInput = (): void => {
   }
 
   const currentPetWindow = showPet()
-  const compactBounds = currentPetWindow.getBounds()
-  const { workArea } = screen.getDisplayMatching(compactBounds)
-  const workAreaRight = workArea.x + workArea.width
-  const rightFits =
-    compactBounds.x + PET_SCHEDULE_INPUT_WINDOW_WIDTH <= workAreaRight
-  const leftFits =
-    compactBounds.x - PET_SCHEDULE_INPUT_EXTRA_WIDTH >= workArea.x
-  const rightSpace = workAreaRight - (compactBounds.x + compactBounds.width)
-  const leftSpace = compactBounds.x - workArea.x
-  const side: PetScheduleInputPlacement['side'] =
-    rightFits || (!leftFits && rightSpace >= leftSpace) ? 'right' : 'left'
-  const desiredX =
-    side === 'right'
-      ? compactBounds.x
-      : compactBounds.x - PET_SCHEDULE_INPUT_EXTRA_WIDTH
-  const maximumX = workAreaRight - PET_SCHEDULE_INPUT_WINDOW_WIDTH
-  const expandedX = Math.round(
-    Math.min(Math.max(desiredX, workArea.x), maximumX)
-  )
+  const bounds = currentPetWindow.getBounds()
   const placement: PetScheduleInputPlacement = {
-    side,
-    petCenterX:
-      compactBounds.x + PET_WINDOW_SIZE.width / 2 - expandedX
+    side: 'right',
+    petCenterX: PET_WINDOW_SIZE.width / 2
   }
 
+  console.log('[pet:schedule-input] opening', { bounds })
   petScheduleInputPlacement = placement
-  currentPetWindow.setBounds(
-    {
-      x: expandedX,
-      y: compactBounds.y,
-      width: PET_SCHEDULE_INPUT_WINDOW_WIDTH,
-      height: PET_WINDOW_SIZE.height
-    },
-    false
-  )
   currentPetWindow.setIgnoreMouseEvents(false)
   currentPetWindow.webContents.send(
     IPC_CHANNELS.petScheduleInputOpened,
     placement
   )
   currentPetWindow.focus()
+  console.log('[pet:schedule-input] opened', {
+    bounds: currentPetWindow.getBounds()
+  })
 }
 
 const showFoundationWindow = (): void => {
@@ -241,6 +209,18 @@ const showFoundationWindow = (): void => {
   mainWindow.focus()
 }
 
+const showOnboardingWindow = (): void => {
+  if (isWindowAlive(mainWindow)) {
+    mainWindow.show()
+    mainWindow.focus()
+    return
+  }
+  mainWindow = createOnboardingWindow()
+  mainWindow.once('closed', () => {
+    mainWindow = null
+  })
+}
+
 const openSettingsWindow = (): void => {
   if (!isWindowAlive(settingsWindow)) {
     settingsWindow = createSettingsWindow()
@@ -254,6 +234,23 @@ const openSettingsWindow = (): void => {
   }
   settingsWindow.show()
   settingsWindow.focus()
+}
+
+const openHelpWindow = (): void => {
+  if (!isWindowAlive(helpWindow)) {
+    helpWindow = createHelpWindow()
+    helpWindow.once('closed', () => {
+      helpWindow = null
+    })
+    return
+  }
+  if (helpWindow.isMinimized()) helpWindow.restore()
+  helpWindow.show()
+  helpWindow.focus()
+}
+
+const closeHelpWindow = (): void => {
+  if (isWindowAlive(helpWindow)) helpWindow.close()
 }
 
 const showPetNotification = (request: PetNotificationRequest): void => {
@@ -286,6 +283,57 @@ const showPetNotification = (request: PetNotificationRequest): void => {
       title: request.title,
       body: request.message
     }).show()
+  }
+}
+
+const isSameLocalDate = (left: Date, right: Date): boolean =>
+  left.getFullYear() === right.getFullYear() &&
+  left.getMonth() === right.getMonth() &&
+  left.getDate() === right.getDate()
+
+const buildTodayScheduleMessage = (): string => {
+  const now = new Date()
+  const todaySchedules = schedulesStore
+    .get('schedules')
+    .filter((schedule) => isSameLocalDate(new Date(schedule.startAt), now))
+    .sort((left, right) => left.startAt.localeCompare(right.startAt))
+
+  if (todaySchedules.length === 0) {
+    return '오늘은 등록된 일정이 없어. 여유로운 하루 보내자!'
+  }
+
+  const visibleSchedules = todaySchedules.slice(0, 5)
+  const scheduleLines = visibleSchedules.map((schedule) => {
+    const time = new Date(schedule.startAt).toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    const completed = schedule.status === 'completed' ? ' (완료)' : ''
+    return `${time} ${schedule.title}${completed}`
+  })
+  const hiddenCount = todaySchedules.length - visibleSchedules.length
+  if (hiddenCount > 0) {
+    scheduleLines.push(`그리고 ${hiddenCount}개가 더 있어.`)
+  }
+  return `오늘 일정은 ${todaySchedules.length}개야!\n${scheduleLines.join('\n')}`
+}
+
+const announceTodaySchedules = (): void => {
+  if (!settingsStore.get('petEnabled')) return
+  const window = ensurePetWindow()
+  const deliver = (): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(IPC_CHANNELS.petMessageShown, {
+      text: buildTodayScheduleMessage(),
+      finalEmotion: 'happy',
+      typingSpeed: 24,
+      visibleDuration: 9_000
+    })
+  }
+  if (window.webContents.isLoadingMainFrame()) {
+    window.webContents.once('did-finish-load', deliver)
+  } else {
+    deliver()
   }
 }
 
@@ -346,7 +394,8 @@ if (!hasSingleInstanceLock) {
   app.quit()
 } else {
   app.on('second-instance', () => {
-    showPet(true)
+    if (getGeminiKeyStatus().configured) showPet(true)
+    else showOnboardingWindow()
   })
 
   void app.whenReady().then(() => {
@@ -366,6 +415,7 @@ if (!hasSingleInstanceLock) {
       togglePetScheduleInput,
       closePetScheduleInput,
       openSettings: openSettingsWindow,
+      openHelp: openHelpWindow,
       quitApp
     })
     registerScheduleIpc({
@@ -393,8 +443,44 @@ if (!hasSingleInstanceLock) {
       ],
       scheduler: notificationScheduler
     })
+    registerHolidayIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow
+      ]
+    })
+    registerGeminiKeyIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow
+      ],
+      completeOnboarding: () => {
+        if (isWindowAlive(mainWindow)) mainWindow.close()
+        if (settingsStore.get('petEnabled')) showPet()
+      },
+      openSettings: openSettingsWindow
+    })
+    registerHelpIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow,
+        helpWindow
+      ],
+      openHelp: openHelpWindow,
+      closeHelp: closeHelpWindow
+    })
 
-    ensurePetWindow()
+    if (getGeminiKeyStatus().configured) {
+      ensurePetWindow()
+    } else {
+      showOnboardingWindow()
+    }
     appTray = createAppTray({
       isPetVisible: () => isWindowAlive(petWindow) && petWindow.isVisible(),
       showPet: () => showPet(),
@@ -403,6 +489,7 @@ if (!hasSingleInstanceLock) {
       openNewSchedule: () => openScheduleDiary(true),
       showFoundation: showFoundationWindow,
       openSettings: openSettingsWindow,
+      openHelp: openHelpWindow,
       quitApp
     })
 
@@ -431,11 +518,16 @@ if (!hasSingleInstanceLock) {
       notificationScheduler?.rescheduleRepeating()
     })
 
-    if (settingsStore.get('petEnabled')) {
+    if (getGeminiKeyStatus().configured && settingsStore.get('petEnabled')) {
       showPet()
+      const todayScheduleTimer = setTimeout(announceTodaySchedules, 1_200)
+      todayScheduleTimer.unref()
     }
 
-    app.on('activate', () => showPet())
+    app.on('activate', () => {
+      if (getGeminiKeyStatus().configured) showPet()
+      else showOnboardingWindow()
+    })
   })
 
   app.on('before-quit', () => {

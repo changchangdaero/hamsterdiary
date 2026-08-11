@@ -1,10 +1,11 @@
 // 월간 달력과 선택 날짜 목록으로 일정을 생성·관리하는 다이어리 창입니다.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Schedule } from '../../../shared/types/schedule'
+import type { Holiday } from '../../../shared/types/holiday'
 import ScheduleForm from '../components/ScheduleForm'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
-const VISIBLE_SCHEDULE_LIMIT = 3
+const VISIBLE_SCHEDULE_LIMIT = 2
 
 interface CalendarDay {
   date: Date
@@ -60,6 +61,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
   const [selectedDate, setSelectedDate] = useState(todayKey)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [holidays, setHolidays] = useState<Holiday[]>([])
   const [editing, setEditing] = useState<EditingState>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -144,7 +146,36 @@ function ScheduleDiaryWindow(): React.JSX.Element {
       ),
     [displayMonth]
   )
+  const visibleYears = useMemo(
+    () => [...new Set(calendarDays.map((day) => day.date.getFullYear()))],
+    [calendarDays]
+  )
+  const holidayByDate = useMemo(() => {
+    const grouped = new Map<string, string[]>()
+    for (const holiday of holidays) {
+      const names = grouped.get(holiday.date) ?? []
+      names.push(holiday.name)
+      grouped.set(holiday.date, names)
+    }
+    return grouped
+  }, [holidays])
   const selectedSchedules = schedulesByDate.get(selectedDate) ?? []
+
+  useEffect(() => {
+    let active = true
+    void window.desktopPetAPI
+      .listHolidays(visibleYears)
+      .then((items) => {
+        if (active) setHolidays(items)
+      })
+      .catch((holidayError: unknown) => {
+        console.warn('[holiday:ui] failed to load holidays', holidayError)
+        if (active) setHolidays([])
+      })
+    return () => {
+      active = false
+    }
+  }, [visibleYears])
 
   const selectDay = (day: CalendarDay): void => {
     setSelectedDate(day.key)
@@ -210,9 +241,18 @@ function ScheduleDiaryWindow(): React.JSX.Element {
           <p className="schedule-eyebrow">Desktop Pet Scheduler</p>
           <h1>일정 다이어리</h1>
         </div>
-        <button type="button" onClick={() => openNewForm(selectedDate)}>
-          + 새 일정 추가
-        </button>
+        <div className="schedule-header-actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void window.desktopPetAPI.openHelp()}
+          >
+            ? 도움말
+          </button>
+          <button type="button" onClick={() => openNewForm(selectedDate)}>
+            + 새 일정 추가
+          </button>
+        </div>
       </header>
 
       {error && (
@@ -269,6 +309,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
           <div className="calendar-grid">
             {calendarDays.map((day) => {
               const daySchedules = schedulesByDate.get(day.key) ?? []
+              const dayHolidays = holidayByDate.get(day.key) ?? []
               const hiddenCount =
                 daySchedules.length - VISIBLE_SCHEDULE_LIMIT
               return (
@@ -278,11 +319,14 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                     'calendar-day',
                     day.inCurrentMonth ? '' : 'is-outside',
                     day.key === todayKey ? 'is-today' : '',
-                    day.key === selectedDate ? 'is-selected' : ''
+                    day.key === selectedDate ? 'is-selected' : '',
+                    dayHolidays.length > 0 ? 'is-holiday' : ''
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  aria-label={`${day.date.toLocaleDateString('ko-KR')} 일정 보기`}
+                  aria-label={`${day.date.toLocaleDateString('ko-KR')}${
+                    dayHolidays.length > 0 ? ` ${dayHolidays.join(', ')}` : ''
+                  } 일정 보기`}
                   role="button"
                   tabIndex={0}
                   onClick={() => selectDay(day)}
@@ -296,6 +340,14 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                   <span className="calendar-day-number">
                     {day.date.getDate()}
                   </span>
+                  {dayHolidays.length > 0 && (
+                    <span
+                      className="calendar-holiday"
+                      title={dayHolidays.join(', ')}
+                    >
+                      {dayHolidays.join(' · ')}
+                    </span>
+                  )}
                   <span className="calendar-day-schedules">
                     {daySchedules
                       .slice(0, VISIBLE_SCHEDULE_LIMIT)
@@ -323,6 +375,8 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                       <button
                         type="button"
                         className="calendar-more"
+                        aria-label={`숨겨진 일정 ${hiddenCount}개 보기`}
+                        title={`일정 ${hiddenCount}개 더 보기`}
                         onClick={(event) => {
                           event.stopPropagation()
                           setSelectedDate(day.key)
@@ -330,7 +384,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                         }}
                         onKeyDown={(event) => event.stopPropagation()}
                       >
-                        +{hiddenCount}개
+                        +{hiddenCount}
                       </button>
                     )}
                   </span>

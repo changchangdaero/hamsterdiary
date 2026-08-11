@@ -2,3 +2,5 @@
 export { runtimeStore } from './runtimeStore'
 export { schedulesStore } from './schedulesStore'
 export { settingsStore } from './settingsStore'
+export { holidaysStore } from './holidaysStore'
+export { credentialsStore } from './credentialsStore'

@@ -33,6 +33,7 @@ interface RegisterPetIpcOptions {
   togglePetScheduleInput: () => void
   closePetScheduleInput: () => void
   openSettings: () => void
+  openHelp: () => void
   quitApp: () => void
 }
 
@@ -417,6 +418,7 @@ export const registerPetIpc = (
       { label: '펫 숨기기', click: options.hidePet },
       { type: 'separator' },
       { label: '설정', click: options.openSettings },
+      { label: '도움말', click: options.openHelp },
       { label: '앱 종료', click: options.quitApp }
     ]).popup({ window: petWindow })
   }

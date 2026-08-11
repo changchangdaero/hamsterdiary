@@ -1,4 +1,34 @@
 /* foundation 화면과 투명 펫 화면의 레이아웃 및 상태 스타일을 정의하는 파일입니다. */
+@font-face {
+  font-family: "Galmuri11";
+  src: url("./assets/fonts/Galmuri11.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galmuri11";
+  src: url("./assets/fonts/Galmuri11-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --pixel-font: "Galmuri11", monospace;
+  --pixel-ink: #2b1b17;
+  --pixel-cream: #fff1cf;
+  --pixel-sand: #f2cf91;
+  --pixel-brown: #8f563b;
+  --pixel-orange: #d9783d;
+  --pixel-green: #4f7f5c;
+  --pixel-red: #b83b4b;
+  --pixel-border: 2px solid var(--pixel-ink);
+  --pixel-shadow: 4px 4px 0 var(--pixel-ink);
+  --pixel-shadow-small: 2px 2px 0 var(--pixel-ink);
+}
+
 .foundation-document {
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -111,6 +141,10 @@
   animation: pet-happy-bounce 1.05s ease-out 1;
 }
 
+.pet-window.is-chatting .emotion-happy {
+  animation-iteration-count: infinite;
+}
+
 .speech-bubble {
   position: absolute;
   z-index: 2;
@@ -164,6 +198,19 @@
 .speech-bubble.is-closing {
   pointer-events: none;
   animation: speech-bubble-exit 160ms ease-in both;
+}
+
+.speech-bubble-message-button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: inherit;
+  cursor: default;
 }
 
 @keyframes pet-idle-breathe {
@@ -265,7 +312,7 @@
 @keyframes speech-bubble-enter {
   from {
     opacity: 0;
-    transform: translateX(-50%) scale(0.97);
+    transform: translateX(-50%) translateY(4px) scale(0.98);
   }
 
   to {
@@ -282,7 +329,7 @@
 
   to {
     opacity: 0;
-    transform: translateX(-50%) scale(0.98);
+    transform: translateX(-50%) translateY(4px) scale(0.98);
   }
 }
 
@@ -643,6 +690,134 @@ dd {
 
 .pet-inline-error {
   margin-top: 8px;
+}
+
+/* The conversation is another state of the hamster's regular speech bubble. */
+.speech-bubble.pet-inline-input {
+  z-index: 4;
+  bottom: calc(var(--pet-sprite-height) - 9px);
+  left: var(--pet-stage-center-x, 50%);
+  width: 330px;
+  max-width: calc(100% - 24px);
+  min-height: 112px;
+  padding: 13px 14px 12px;
+  border: 2px solid #5b3a29;
+  border-radius: 18px;
+  color: #3c291f;
+  background: #fffaf0;
+  box-shadow: 0 4px 12px rgb(66 42 30 / 12%);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.speech-bubble.pet-inline-input.is-right,
+.speech-bubble.pet-inline-input.is-left {
+  left: var(--pet-stage-center-x, 50%);
+}
+
+.speech-bubble.pet-inline-input::before,
+.speech-bubble.pet-inline-input::after {
+  left: 50%;
+  right: auto;
+  bottom: -15px;
+  border-top: 15px solid #5b3a29;
+  border-right: 12px solid transparent;
+  border-bottom: 0;
+  border-left: 12px solid transparent;
+  transform: translateX(-50%);
+}
+
+.speech-bubble.pet-inline-input::after {
+  bottom: -11px;
+  border-top: 13px solid #fffaf0;
+  border-right-width: 10px;
+  border-left-width: 10px;
+}
+
+.speech-bubble.pet-inline-input:focus-within {
+  border-color: #875c3b;
+  box-shadow: 0 5px 16px rgb(66 42 30 / 20%);
+}
+
+.pet-inline-input textarea {
+  width: 100%;
+  min-height: 36px;
+  max-height: 76px;
+  resize: none;
+  border: 0;
+  padding: 8px 9px;
+  color: #3c291f;
+  background: transparent;
+  font: inherit;
+  line-height: 1.35;
+  outline: none;
+}
+
+.pet-inline-input textarea::placeholder {
+  color: #9a7d6c;
+}
+
+.pet-inline-input button {
+  min-width: 0;
+  border: 0;
+  border-radius: 9px;
+  padding: 8px 10px;
+  color: #3c291f;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pet-inline-input button:focus-visible {
+  outline: 2px solid #875c3b;
+  outline-offset: 2px;
+}
+
+.pet-inline-input button.confirm,
+.pet-inline-input button.manual {
+  color: #fffaf0;
+  background: #875c3b;
+}
+
+.pet-inline-input button.close {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  padding: 3px 7px;
+  color: #7b6253;
+  background: transparent;
+  font-size: 18px;
+}
+
+.pet-inline-query {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  border-top: 1px solid #eadcca;
+  padding-top: 5px;
+}
+
+.pet-inline-reply {
+  margin: 0 24px 8px 0;
+  padding: 0;
+  color: #3c291f;
+  background: transparent;
+  line-height: 1.45;
+}
+
+.pet-inline-input .pet-inline-error {
+  margin: 7px 0 0;
+  color: #a33a2b;
+  font-size: 12px;
+}
+
+.pet-inline-input button.manual {
+  margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speech-bubble,
+  .speech-bubble.is-closing {
+    animation-duration: 1ms;
+  }
 }
 
 .schedule-filters button.active {
@@ -1741,4 +1916,962 @@ dd {
   margin: 0;
   color: #b9c3f1;
   font-size: 0.84rem;
+}
+
+/* Unified offline pixel design system */
+:where(.foundation-document, .schedule-document, .settings-document) {
+  color: var(--pixel-ink);
+  background: var(--pixel-brown);
+  font-family: var(--pixel-font);
+  font-synthesis: none;
+}
+
+:where(.foundation-document, .schedule-document, .settings-document) body,
+:where(.foundation-document, .schedule-document, .settings-document) #root {
+  color: var(--pixel-ink);
+  background-color: var(--pixel-brown);
+  font-family: var(--pixel-font);
+}
+
+:where(.foundation-document, .schedule-document, .settings-document) *,
+.pet-document * {
+  font-family: var(--pixel-font);
+}
+
+:where(.foundation-document, .schedule-document, .settings-document) * {
+  border-radius: 0 !important;
+}
+
+:where(.foundation-document, .schedule-document, .settings-document)
+  :where(button, input, select, textarea) {
+  border: var(--pixel-border);
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow-small);
+  font: inherit;
+  transition: none;
+}
+
+:where(.foundation-document, .schedule-document, .settings-document)
+  button:not(:disabled) {
+  cursor: pointer;
+}
+
+:where(.foundation-document, .schedule-document, .settings-document)
+  button:not(:disabled):hover {
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+}
+
+:where(.foundation-document, .schedule-document, .settings-document)
+  button:not(:disabled):active {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+:where(.foundation-document, .schedule-document, .settings-document)
+  :focus-visible {
+  outline: 3px solid var(--pixel-orange);
+  outline-offset: 2px;
+}
+
+:where(.foundation-card, .pet-test-panel, .reminder-setting-card) {
+  border: var(--pixel-border);
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.foundation-card {
+  padding: 28px;
+}
+
+.foundation-document button,
+.reminder-settings button {
+  border: var(--pixel-border);
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+  box-shadow: var(--pixel-shadow-small);
+}
+
+.foundation-document button.secondary,
+.reminder-settings button.secondary {
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+}
+
+.status,
+.test-status,
+.settings-footer p {
+  color: var(--pixel-green);
+}
+
+/* Calendar: high-contrast cartridge palette and square tile grid. */
+.schedule-document {
+  --calendar-bg: var(--pixel-brown);
+  --calendar-surface: var(--pixel-cream);
+  --calendar-surface-raised: var(--pixel-sand);
+  --calendar-surface-hover: #ffe4ad;
+  --calendar-border: var(--pixel-ink);
+  --calendar-border-strong: var(--pixel-ink);
+  --calendar-text: var(--pixel-ink);
+  --calendar-text-muted: #6f4936;
+  --calendar-text-faint: #a07759;
+  --calendar-accent: var(--pixel-orange);
+  --calendar-accent-soft: var(--pixel-sand);
+  --calendar-danger: var(--pixel-red);
+  --calendar-chip: var(--pixel-green);
+  --calendar-chip-complete: #9b8b68;
+}
+
+.schedule-document,
+.schedule-document body,
+.schedule-document #root {
+  background-color: var(--pixel-brown);
+}
+
+.schedule-header h1 {
+  color: var(--pixel-cream);
+  letter-spacing: 0.04em;
+  text-shadow: 2px 2px 0 var(--pixel-ink);
+}
+
+.calendar-workspace {
+  transition: none;
+}
+
+.calendar-workspace.is-detail-open {
+  gap: 12px;
+}
+
+.calendar-panel,
+.calendar-workspace.is-detail-open .selected-date-panel {
+  border: var(--pixel-border);
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.calendar-toolbar {
+  border-bottom: var(--pixel-border);
+  background: var(--pixel-sand);
+}
+
+.calendar-toolbar h2 {
+  color: var(--pixel-ink);
+  letter-spacing: 0.06em;
+}
+
+.schedule-document button,
+.schedule-document button.secondary,
+.calendar-navigation button {
+  border: var(--pixel-border);
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow-small);
+}
+
+.calendar-weekdays {
+  border-bottom: var(--pixel-border);
+  color: var(--pixel-ink);
+  background: var(--pixel-orange);
+}
+
+.calendar-weekdays span {
+  border-right: 2px solid var(--pixel-ink);
+  color: var(--pixel-cream);
+  text-shadow: 1px 1px 0 var(--pixel-ink);
+}
+
+.calendar-weekdays span:last-child {
+  border-right: 0;
+}
+
+.calendar-weekdays span:first-child,
+.calendar-weekdays span:last-child {
+  color: var(--pixel-cream);
+}
+
+.calendar-grid {
+  gap: 2px;
+  background: var(--pixel-ink);
+}
+
+.calendar-day {
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+}
+
+.calendar-day:hover {
+  background: #ffe4ad;
+}
+
+.calendar-day.is-outside {
+  color: #94765e;
+  background: #d9b47b;
+}
+
+.calendar-day.is-today {
+  background: var(--pixel-sand);
+}
+
+.calendar-day.is-selected {
+  box-shadow: inset 0 0 0 4px var(--pixel-orange) !important;
+}
+
+.calendar-day-number {
+  border: 0;
+  color: var(--pixel-ink);
+  background: transparent;
+}
+
+.calendar-day.is-today .calendar-day-number {
+  border: 2px solid var(--pixel-ink);
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+  box-shadow: 2px 2px 0 var(--pixel-ink);
+}
+
+.schedule-document button.calendar-schedule,
+.schedule-document button.calendar-more {
+  border: 2px solid var(--pixel-ink);
+  color: var(--pixel-cream);
+  background: var(--pixel-green);
+  box-shadow: none;
+}
+
+.schedule-document button.calendar-schedule:hover {
+  border-color: var(--pixel-ink);
+  background: var(--pixel-orange);
+}
+
+.schedule-document button.calendar-schedule.is-completed {
+  color: var(--pixel-ink);
+  background: #b9a77d;
+  opacity: 1;
+}
+
+.schedule-document button.calendar-more {
+  border-color: transparent;
+  color: var(--pixel-brown);
+  background: transparent;
+}
+
+.selected-date-panel {
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  transition: none;
+}
+
+.selected-date-header {
+  border-bottom: var(--pixel-border);
+}
+
+.selected-date-header :where(h2, p),
+.selected-schedule-list :where(time, strong),
+.selected-date-empty {
+  color: var(--pixel-ink);
+}
+
+.selected-schedule-list li {
+  border-color: var(--pixel-ink);
+}
+
+.selected-schedule-list .schedule-state {
+  border: 2px solid var(--pixel-ink);
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+}
+
+.schedule-actions button,
+.schedule-document button.detail-close-button {
+  border: 2px solid var(--pixel-ink);
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+}
+
+.schedule-actions button.danger {
+  color: var(--pixel-cream);
+  background: var(--pixel-red);
+}
+
+.schedule-document button.detail-add-button {
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+}
+
+.schedule-modal-backdrop {
+  background: rgb(43 27 23 / 82%);
+}
+
+.schedule-form-panel {
+  border: var(--pixel-border);
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  box-shadow: 6px 6px 0 var(--pixel-ink);
+}
+
+.schedule-form-panel :where(input, select, textarea) {
+  border: var(--pixel-border);
+  color: var(--pixel-cream);
+  background: var(--pixel-ink);
+  box-shadow: inset 2px 2px 0 #000;
+  caret-color: var(--pixel-cream);
+  color-scheme: dark;
+}
+
+.schedule-form-panel :where(input, textarea)::placeholder {
+  color: #d9b47b;
+  opacity: 1;
+}
+
+.schedule-form-panel select option {
+  color: var(--pixel-cream);
+  background: var(--pixel-ink);
+}
+
+.natural-schedule-input,
+.natural-schedule-preview {
+  border: var(--pixel-border);
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+}
+
+.natural-schedule-input :where(p, dt),
+.schedule-form-panel .character-count {
+  color: #6f4936;
+}
+
+.schedule-form-panel .past-warning {
+  border: 2px solid var(--pixel-ink);
+  color: var(--pixel-ink);
+  background: #f2c14e;
+}
+
+.schedule-error,
+.form-error,
+.field-error {
+  color: var(--pixel-red);
+}
+
+/* Settings use the same cartridge panels instead of a separate web-app theme. */
+.settings-document,
+.settings-document body,
+.settings-document #root {
+  color: var(--pixel-ink);
+  background-color: var(--pixel-brown);
+}
+
+.reminder-settings > header :where(h1, span) {
+  color: var(--pixel-cream);
+  text-shadow: 2px 2px 0 var(--pixel-ink);
+}
+
+.reminder-settings > header p {
+  color: #ffd166;
+}
+
+.reminder-setting-card {
+  border: var(--pixel-border);
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.reminder-setting-card :where(label, h2, p),
+.quiet-hours-row span {
+  color: var(--pixel-ink);
+}
+
+.reminder-setting-card input[type="number"] {
+  border: var(--pixel-border);
+  color: var(--pixel-ink);
+  background: #fffaf0;
+  box-shadow: inset 2px 2px 0 #c39a66;
+  color-scheme: light;
+}
+
+.setting-switch input,
+.setting-checkbox input {
+  accent-color: var(--pixel-green);
+}
+
+/* Pet speech UI follows the same square cream/brown visual language. */
+.pet-sprite {
+  image-rendering: pixelated;
+}
+
+.speech-bubble,
+.speech-bubble.pet-inline-input {
+  border: var(--pixel-border);
+  border-radius: 2px;
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.speech-bubble::before,
+.speech-bubble.pet-inline-input::before {
+  border-top-color: var(--pixel-ink);
+}
+
+.speech-bubble::after,
+.speech-bubble.pet-inline-input::after {
+  border-top-color: var(--pixel-cream);
+}
+
+.pet-inline-input textarea {
+  border: 0;
+  color: var(--pixel-ink);
+  background: transparent;
+  box-shadow: none;
+}
+
+.pet-inline-input button {
+  border: 2px solid var(--pixel-ink);
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--pixel-ink);
+}
+
+.pet-inline-input button:active {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.pet-inline-input button.confirm,
+.pet-inline-input button.manual {
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+}
+
+/* Final guardrails: no soft web shadows, gradients, or eased transitions. */
+:where(.foundation-document, .schedule-document, .settings-document) * {
+  background-image: none !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+:where(.foundation-document, .schedule-document, .settings-document)
+  :where(button, input, select, textarea),
+:where(.foundation-card, .pet-test-panel, .reminder-setting-card),
+.calendar-panel,
+.calendar-workspace.is-detail-open .selected-date-panel {
+  box-shadow: var(--pixel-shadow-small) !important;
+}
+
+:where(.foundation-card, .pet-test-panel, .reminder-setting-card),
+.calendar-panel,
+.calendar-workspace.is-detail-open .selected-date-panel,
+.schedule-form-panel {
+  box-shadow: var(--pixel-shadow) !important;
+}
+
+.calendar-day.is-selected {
+  box-shadow: inset 0 0 0 4px var(--pixel-orange) !important;
+}
+
+.calendar-day.is-today .calendar-day-number {
+  box-shadow: 2px 2px 0 var(--pixel-ink) !important;
+}
+
+:where(.foundation-document, .schedule-document, .settings-document)
+  button:not(:disabled):active {
+  box-shadow: none !important;
+}
+
+.speech-bubble,
+.speech-bubble.pet-inline-input,
+.speech-bubble.pet-inline-input:focus-within {
+  box-shadow: var(--pixel-shadow) !important;
+}
+
+/* Keep form text readable over Chromium's dark native controls. */
+.schedule-form-panel input,
+.schedule-form-panel select,
+.schedule-form-panel textarea {
+  color: var(--pixel-cream) !important;
+  -webkit-text-fill-color: var(--pixel-cream) !important;
+  background-color: #202226 !important;
+  caret-color: var(--pixel-cream) !important;
+  color-scheme: dark;
+}
+
+.schedule-form-panel input::placeholder,
+.schedule-form-panel textarea::placeholder {
+  color: #d9b47b !important;
+  -webkit-text-fill-color: #d9b47b !important;
+  opacity: 1;
+}
+
+.schedule-form-panel select option {
+  color: var(--pixel-cream) !important;
+  background-color: #202226 !important;
+}
+
+/* Keep the add/edit form inside a typical desktop viewport without scrolling. */
+.schedule-modal-backdrop {
+  padding-block: 12px;
+}
+
+.schedule-form-panel {
+  max-height: calc(100vh - 24px);
+  padding: 18px 22px;
+}
+
+.schedule-form-panel h2 {
+  margin-bottom: 12px;
+}
+
+.schedule-form-panel label {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.schedule-form-panel :where(input, select, textarea) {
+  padding: 7px 9px;
+}
+
+.schedule-form-panel textarea {
+  min-height: 72px;
+  max-height: 110px;
+}
+
+.schedule-form-panel .character-count {
+  margin-top: 2px;
+}
+
+.schedule-form-panel .schedule-form-actions {
+  margin-top: 12px;
+}
+
+.schedule-form-panel .natural-schedule-input {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+}
+
+.schedule-form-panel .natural-schedule-input p {
+  margin-top: 2px;
+}
+
+.schedule-form-panel .natural-schedule-controls {
+  margin-top: 8px;
+}
+
+/* Official holidays stay visually separate from user-created schedules. */
+.calendar-day.is-holiday .calendar-day-number,
+.calendar-holiday {
+  color: var(--pixel-red);
+}
+
+.calendar-holiday {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  margin-bottom: 3px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-day.is-today.is-holiday .calendar-day-number {
+  color: var(--pixel-cream);
+  background: var(--pixel-red);
+}
+
+/* Two schedule rows stay visible; overflow is summarized as a pixel badge. */
+.calendar-day {
+  position: relative;
+}
+
+.schedule-document button.calendar-more {
+  position: absolute;
+  z-index: 1;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  place-items: center;
+  color: var(--pixel-green);
+  background: transparent;
+  box-shadow: none !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.schedule-document button.calendar-more:hover {
+  color: var(--pixel-green);
+  background: transparent;
+}
+
+.schedule-document button.calendar-more:active {
+  translate: none;
+  box-shadow: none !important;
+}
+
+.schedule-document button.calendar-schedule,
+.schedule-document button.calendar-schedule:hover,
+.schedule-document button.calendar-schedule:active {
+  box-shadow: none !important;
+}
+
+/* BYOK onboarding and API-key settings share the pixel theme. */
+.onboarding-document,
+.onboarding-document body,
+.onboarding-document #root {
+  min-height: 100%;
+  margin: 0;
+  color: var(--pixel-ink);
+  background: var(--pixel-brown);
+  font-family: var(--pixel-font);
+}
+
+.onboarding-shell {
+  min-height: 100vh;
+  display: grid;
+  padding: 24px;
+  place-items: center;
+}
+
+.onboarding-card {
+  position: relative;
+  display: grid;
+  width: min(640px, 100%);
+  min-height: 500px;
+  grid-template-columns: 180px minmax(0, 1fr);
+  align-items: center;
+  border: var(--pixel-border);
+  padding: 30px;
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.onboarding-card.is-step-2 {
+  min-height: 0;
+  padding-block: 20px;
+}
+
+.onboarding-card.is-step-2 .onboarding-pet {
+  width: 145px;
+}
+
+.onboarding-card.is-step-2 .onboarding-content h1 {
+  margin-bottom: 7px;
+}
+
+.onboarding-card.is-step-2 .onboarding-content > p:not(.pixel-kicker, .onboarding-error) {
+  margin-block: 7px;
+  line-height: 1.45;
+}
+
+.onboarding-card.is-step-2 .key-guide-title {
+  margin-top: 10px;
+}
+
+.onboarding-card.is-step-2 .key-guide {
+  padding-block: 8px;
+  line-height: 1.45;
+}
+
+.onboarding-card.is-step-2 .key-free-notice {
+  margin-bottom: 9px;
+  padding-block: 5px;
+}
+
+.onboarding-card.is-step-2 .api-key-field,
+.onboarding-card.is-step-2 .onboarding-actions {
+  margin-top: 9px;
+}
+
+.onboarding-step {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  color: var(--pixel-orange);
+  font-weight: 700;
+}
+
+.onboarding-pet {
+  width: 170px;
+  image-rendering: pixelated;
+}
+
+.onboarding-content {
+  min-width: 0;
+}
+
+.pixel-kicker {
+  margin: 0 0 8px;
+  color: var(--pixel-orange);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.onboarding-content h1 {
+  margin: 0 0 12px;
+  font-size: 1.55rem;
+}
+
+.onboarding-content > p:not(.pixel-kicker, .onboarding-error) {
+  line-height: 1.6;
+}
+
+.key-guide {
+  margin: 6px 0 12px;
+  border: 2px solid var(--pixel-ink);
+  padding: 12px 12px 12px 36px;
+  background: var(--pixel-sand);
+  line-height: 1.65;
+}
+
+.key-guide-title {
+  margin: 16px 0 0;
+  font-size: 1rem;
+}
+
+.key-free-notice {
+  border-left: 4px solid var(--pixel-green);
+  margin: 0 0 14px;
+  padding: 7px 9px;
+  color: var(--pixel-ink);
+  background: #d9d39a;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.onboarding-content button,
+.api-key-settings button {
+  border: var(--pixel-border);
+  border-radius: 0;
+  padding: 9px 13px;
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+  box-shadow: var(--pixel-shadow-small) !important;
+  font: inherit;
+  cursor: pointer;
+}
+
+.onboarding-content button.secondary,
+.api-key-settings button.secondary {
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+}
+
+.onboarding-content button:active,
+.api-key-settings button:active {
+  translate: 2px 2px;
+  box-shadow: none !important;
+}
+
+.onboarding-content button:disabled,
+.api-key-settings button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.api-key-field,
+.api-key-settings > label {
+  display: grid;
+  gap: 5px;
+  margin-top: 14px;
+  font-weight: 700;
+}
+
+.api-key-field input,
+.api-key-settings input[type="password"] {
+  width: 100%;
+  border: var(--pixel-border);
+  border-radius: 0;
+  padding: 10px;
+  color: var(--pixel-cream);
+  -webkit-text-fill-color: var(--pixel-cream);
+  background: #202226;
+  box-shadow: inset 2px 2px 0 #000 !important;
+  caret-color: var(--pixel-cream);
+  font: inherit;
+}
+
+.onboarding-actions,
+.api-key-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.onboarding-error {
+  color: var(--pixel-red);
+}
+
+.key-status {
+  border: 2px solid var(--pixel-ink);
+  padding: 4px 7px;
+  color: var(--pixel-red);
+  background: var(--pixel-sand);
+}
+
+.key-status.is-set {
+  color: var(--pixel-green);
+}
+
+.api-key-settings button.danger {
+  background: var(--pixel-red);
+}
+
+@media (max-width: 660px) {
+  .onboarding-card {
+    grid-template-columns: 1fr;
+    padding: 24px;
+  }
+
+  .onboarding-pet {
+    width: 120px;
+    margin: 0 auto;
+  }
+}
+
+/* Keep secondary settings copy readable on the cream pixel cards. */
+.settings-document .reminder-setting-card p,
+.settings-document .reminder-setting-card label,
+.settings-document .reminder-setting-card .setting-switch span,
+.settings-document .reminder-setting-card .setting-checkbox,
+.settings-document .reminder-setting-card .quiet-hours-row span {
+  color: #5b3a2e !important;
+}
+
+.settings-document .reminder-setting-card input:disabled + span,
+.settings-document .reminder-setting-card label:has(input:disabled) {
+  color: #765646 !important;
+  opacity: 1;
+}
+
+.schedule-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Always-available hamster help window. */
+.help-document,
+.help-document body,
+.help-document #root {
+  min-height: 100%;
+  margin: 0;
+  color: var(--pixel-ink);
+  background: var(--pixel-brown);
+  font-family: var(--pixel-font);
+}
+
+.help-shell {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 24px 28px 36px;
+}
+
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: var(--pixel-border);
+  padding: 16px 20px;
+  background: var(--pixel-sand);
+  box-shadow: var(--pixel-shadow);
+}
+
+.help-header h1,
+.help-header p {
+  margin: 0 0 6px;
+}
+
+.help-header img {
+  width: 112px;
+  image-rendering: pixelated;
+}
+
+.help-card {
+  margin-top: 18px;
+  border: var(--pixel-border);
+  padding: 16px 18px;
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow-small);
+}
+
+.help-card h2 {
+  margin: 0 0 12px;
+  color: var(--pixel-orange);
+  font-size: 1.05rem;
+}
+
+.help-card h3 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+}
+
+.help-card ul {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.65;
+}
+
+.help-example-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.help-example-grid > div {
+  border: 2px solid var(--pixel-ink);
+  padding: 12px;
+  background: #fff8e4;
+}
+
+.help-example-grid > div:first-child {
+  grid-row: span 2;
+}
+
+.help-example-grid code {
+  color: var(--pixel-green);
+  background: transparent;
+  font-family: var(--pixel-font);
+  font-weight: 700;
+  white-space: normal;
+}
+
+.help-example-grid p {
+  margin: 8px 0 0;
+  color: var(--pixel-orange);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.help-close {
+  display: block;
+  margin: 22px 0 0 auto;
+  border: var(--pixel-border);
+  padding: 10px 16px;
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+  box-shadow: var(--pixel-shadow-small);
+  font: inherit;
+  cursor: pointer;
+}
+
+.help-close:active {
+  translate: 2px 2px;
+  box-shadow: none;
+}
+
+@media (max-width: 680px) {
+  .help-example-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .help-example-grid > div:first-child {
+    grid-row: auto;
+  }
 }

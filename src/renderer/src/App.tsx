@@ -3,6 +3,8 @@ import FoundationWindow from './windows/FoundationWindow'
 import PetWindow from './windows/PetWindow'
 import ScheduleDiaryWindow from './windows/ScheduleDiaryWindow'
 import SettingsWindow from './windows/SettingsWindow'
+import OnboardingWindow from './windows/OnboardingWindow'
+import HelpWindow from './windows/HelpWindow'
 
 function App(): React.JSX.Element {
   const windowName = new URLSearchParams(window.location.search).get('window')
@@ -15,6 +17,12 @@ function App(): React.JSX.Element {
   }
   if (windowName === 'settings') {
     return <SettingsWindow />
+  }
+  if (windowName === 'onboarding') {
+    return <OnboardingWindow />
+  }
+  if (windowName === 'help') {
+    return <HelpWindow />
   }
   return <FoundationWindow />
 }
