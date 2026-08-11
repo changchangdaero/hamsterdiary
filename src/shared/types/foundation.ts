@@ -8,6 +8,7 @@ import type {
   PetEmotion,
   PetDragMovePayload,
   PetMessagePayload,
+  PetScheduleInputPlacement,
   ResolvedPetMessage
 } from './pet'
 import type {
@@ -20,6 +21,12 @@ import type {
   ReminderControlPayload,
   ReminderSettings
 } from './notifications'
+import type {
+  ScheduleConversationRequest,
+  ScheduleConversationResponse
+} from './scheduleConversation'
+import type { Holiday } from './holiday'
+import type { GeminiKeyStatus } from './geminiKey'
 
 export interface RuntimeVersions {
   electron: string
@@ -47,12 +54,20 @@ export interface DesktopPetAPI {
   showPetMessage: (payload: PetMessagePayload) => Promise<void>
   hidePetMessage: () => Promise<void>
   showPetContextMenu: () => void
+  closePetScheduleInput: () => void
+  onPetScheduleInputOpened: (
+    listener: (placement: PetScheduleInputPlacement) => void
+  ) => () => void
+  onPetScheduleInputClosed: (listener: () => void) => () => void
   onPetEmotionChanged: (listener: (emotion: PetEmotion) => void) => () => void
   onPetMessageShown: (
     listener: (message: ResolvedPetMessage) => void
   ) => () => void
   onPetMessageHidden: (listener: () => void) => () => void
   onPetWindowHidden: (listener: () => void) => () => void
+  converseAboutSchedule: (
+    request: ScheduleConversationRequest
+  ) => Promise<ScheduleConversationResponse>
   listSchedules: () => Promise<Schedule[]>
   createSchedule: (draft: ScheduleDraft) => Promise<Schedule[]>
   updateSchedule: (payload: UpdateSchedulePayload) => Promise<Schedule[]>
@@ -66,6 +81,16 @@ export interface DesktopPetAPI {
   onScheduleOpenNewRequested: (
     listener: (date?: string) => void
   ) => () => void
+  onSchedulesChanged: (listener: (schedules: Schedule[]) => void) => () => void
+  listHolidays: (years: number[]) => Promise<Holiday[]>
+  getGeminiKeyStatus: () => Promise<GeminiKeyStatus>
+  saveGeminiKey: (key: string) => Promise<GeminiKeyStatus>
+  deleteGeminiKey: () => Promise<GeminiKeyStatus>
+  openGeminiKeyPage: () => Promise<void>
+  completeOnboarding: () => Promise<void>
+  openSettings: () => Promise<void>
+  openHelp: () => Promise<void>
+  closeHelp: () => Promise<void>
   getReminderSettings: () => Promise<ReminderSettings>
   updateReminderSettings: (
     settings: ReminderSettings

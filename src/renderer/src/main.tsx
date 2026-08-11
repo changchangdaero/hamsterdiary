@@ -12,6 +12,10 @@ document.documentElement.classList.add(
       ? 'schedule-document'
       : windowName === 'settings'
         ? 'settings-document'
+        : windowName === 'onboarding'
+          ? 'onboarding-document'
+          : windowName === 'help'
+            ? 'help-document'
         : 'foundation-document'
 )
 

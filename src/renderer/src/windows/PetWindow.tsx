@@ -9,9 +9,11 @@ import {
 import type {
   PetDragMovePayload,
   PetEmotion,
+  PetScheduleInputPlacement,
   ResolvedPetMessage
 } from '../../../shared/types/pet'
 import PetSprite from '../components/PetSprite'
+import PetScheduleInput from '../components/PetScheduleInput'
 import SpeechBubble from '../components/SpeechBubble'
 import {
   preloadPetImages,
@@ -23,12 +25,26 @@ const TALKING_FRAME_INTERVAL = 165
 const SLEEP_FRAME_INTERVAL = 575
 const BLINK_DURATION = 125
 const BUBBLE_EXIT_DURATION = 160
+const IDLE_POSE_MIN_DELAY = 25_000
+const IDLE_POSE_MAX_DELAY = 35_000
+const IDLE_SLEEP_DURATION = 30_000
+const COMPLETION_POSE_DURATION = 1_800
 const SLEEP_FRAMES: PetVisualFrame[] = [
   'sleep',
   'sleep-z1',
   'sleep-z2',
   'sleep-z3'
 ]
+
+const logPetStageRect = (state: 'opening' | 'opened' | 'closing' | 'closed'): void => {
+  const rect = document.querySelector('.pet-stage')?.getBoundingClientRect()
+  console.log('[pet:schedule-input] renderer layout', {
+    state,
+    rect: rect
+      ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+      : null
+  })
+}
 
 const toDragPayload = (
   screenX: unknown,
@@ -94,6 +110,19 @@ function PetWindow(): React.JSX.Element {
   const [displayedText, setDisplayedText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isBubbleClosing, setIsBubbleClosing] = useState(false)
+  const [idlePose, setIdlePose] = useState<PetEmotion | null>(null)
+  const [isPointerActive, setIsPointerActive] = useState(false)
+  const [isDraggingVisual, setIsDraggingVisual] = useState(false)
+  const [completionPose, setCompletionPose] = useState(false)
+  const [scheduleInputPlacement, setScheduleInputPlacement] =
+    useState<PetScheduleInputPlacement | null>(null)
+  const visualEmotion: PetEmotion = completionPose
+    ? 'thumbsUp'
+    : scheduleInputPlacement
+      ? 'happy'
+      : isDraggingVisual
+        ? 'question'
+        : idlePose ?? emotion
 
   const pointerIdRef = useRef<number | null>(null)
   const pointerStartRef = useRef<PetDragMovePayload | null>(null)
@@ -112,6 +141,8 @@ function PetWindow(): React.JSX.Element {
   const currentMessageRef = useRef<ResolvedPetMessage | null>(null)
   const graphemesRef = useRef<string[]>([])
   const messageVisibleRef = useRef(false)
+  const idlePoseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const completionPoseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const clearTimer = (
     timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
@@ -150,6 +181,7 @@ function PetWindow(): React.JSX.Element {
   }
 
   const resetToIdle = (): void => {
+    setIdlePose(null)
     setEmotion('idle')
     setAnimationKey((key) => key + 1)
   }
@@ -204,6 +236,7 @@ function PetWindow(): React.JSX.Element {
     setMessage(nextMessage)
     setDisplayedText('')
     setIsBubbleClosing(false)
+    setIdlePose(null)
     setIsTyping(graphemes.length > 0)
     setEmotion('talking')
     setAnimationKey((key) => key + 1)
@@ -249,6 +282,7 @@ function PetWindow(): React.JSX.Element {
     setDisplayedText('')
     setIsTyping(false)
     setIsBubbleClosing(false)
+    setIdlePose(null)
     setEmotion(nextEmotion)
     setAnimationKey((key) => key + 1)
   }
@@ -273,6 +307,8 @@ function PetWindow(): React.JSX.Element {
     pointerStartRef.current = null
     capturedElementRef.current = null
     isDraggingRef.current = false
+    setIsPointerActive(false)
+    setIsDraggingVisual(false)
     window.desktopPetAPI.endPetDrag()
   }
 
@@ -290,25 +326,99 @@ function PetWindow(): React.JSX.Element {
         closeMessage(false)
       }
     )
+    const unsubscribeScheduleInputOpened =
+      window.desktopPetAPI.onPetScheduleInputOpened((placement) => {
+        logPetStageRect('opening')
+        setScheduleInputPlacement(placement)
+        requestAnimationFrame(() => logPetStageRect('opened'))
+      })
+    const unsubscribeScheduleInputClosed =
+      window.desktopPetAPI.onPetScheduleInputClosed(() => {
+        logPetStageRect('closing')
+        setScheduleInputPlacement(null)
+        requestAnimationFrame(() => logPetStageRect('closed'))
+      })
+    const unsubscribeSchedulesChanged =
+      window.desktopPetAPI.onSchedulesChanged(() => {
+        if (completionPoseTimerRef.current !== null) {
+          clearTimeout(completionPoseTimerRef.current)
+        }
+        setCompletionPose(true)
+        setAnimationKey((key) => key + 1)
+        completionPoseTimerRef.current = setTimeout(() => {
+          setCompletionPose(false)
+          setAnimationKey((key) => key + 1)
+          completionPoseTimerRef.current = null
+        }, COMPLETION_POSE_DURATION)
+      })
 
     return () => {
       unsubscribeEmotion()
       unsubscribeMessage()
       unsubscribeMessageHidden()
       unsubscribeWindowHidden()
+      unsubscribeScheduleInputOpened()
+      unsubscribeScheduleInputClosed()
+      unsubscribeSchedulesChanged()
       messageSequenceRef.current += 1
       clearMessageTimers()
+      if (completionPoseTimerRef.current !== null) {
+        clearTimeout(completionPoseTimerRef.current)
+      }
       cancelRendererDrag()
       window.desktopPetAPI.setPetMouseInteractive(false)
     }
   }, [])
 
   useEffect(() => {
+    const clearIdlePoseTimer = (): void => {
+      if (idlePoseTimerRef.current !== null) {
+        clearTimeout(idlePoseTimerRef.current)
+        idlePoseTimerRef.current = null
+      }
+    }
+
+    const canPlayIdlePose =
+      emotion === 'idle' &&
+      message === null &&
+      scheduleInputPlacement === null &&
+      !isPointerActive &&
+      !completionPose
+
+    if (!canPlayIdlePose) {
+      clearIdlePoseTimer()
+      setIdlePose(null)
+      return clearIdlePoseTimer
+    }
+
+    const scheduleNextPose = (): void => {
+      const delay =
+        IDLE_POSE_MIN_DELAY +
+        Math.random() * (IDLE_POSE_MAX_DELAY - IDLE_POSE_MIN_DELAY)
+      idlePoseTimerRef.current = setTimeout(() => {
+        setIdlePose('sleep')
+        setAnimationKey((key) => key + 1)
+
+        idlePoseTimerRef.current = setTimeout(() => {
+          setIdlePose(null)
+          setAnimationKey((key) => key + 1)
+          scheduleNextPose()
+        }, IDLE_SLEEP_DURATION)
+      }, delay)
+    }
+
+    scheduleNextPose()
+    return clearIdlePoseTimer
+  }, [completionPose, emotion, isPointerActive, message, scheduleInputPlacement])
+
+  useEffect(() => {
     let blinkDelayTimer: ReturnType<typeof setTimeout> | null = null
     let blinkFrameTimer: ReturnType<typeof setTimeout> | null = null
     let frameInterval: ReturnType<typeof setInterval> | null = null
 
-    if (emotion === 'idle') {
+    const activeEmotion = visualEmotion
+
+    if (activeEmotion === 'idle') {
       setFrame('idle')
       const scheduleBlink = (): void => {
         const delay = 3_500 + Math.random() * 3_500
@@ -321,14 +431,14 @@ function PetWindow(): React.JSX.Element {
         }, delay)
       }
       scheduleBlink()
-    } else if (emotion === 'talking' && isTyping) {
+    } else if (activeEmotion === 'talking' && isTyping) {
       setFrame('idle')
       frameInterval = setInterval(() => {
         setFrame((currentFrame) =>
           currentFrame === 'talking' ? 'idle' : 'talking'
         )
       }, TALKING_FRAME_INTERVAL)
-    } else if (emotion === 'sleep') {
+    } else if (activeEmotion === 'sleep') {
       let index = 0
       setFrame(SLEEP_FRAMES[index])
       frameInterval = setInterval(() => {
@@ -336,7 +446,7 @@ function PetWindow(): React.JSX.Element {
         setFrame(SLEEP_FRAMES[index])
       }, SLEEP_FRAME_INTERVAL)
     } else {
-      setFrame(getStaticFrame(emotion))
+      setFrame(getStaticFrame(activeEmotion))
     }
 
     return () => {
@@ -344,7 +454,7 @@ function PetWindow(): React.JSX.Element {
       if (blinkFrameTimer !== null) clearTimeout(blinkFrameTimer)
       if (frameInterval !== null) clearInterval(frameInterval)
     }
-  }, [emotion, isTyping])
+  }, [isTyping, visualEmotion])
 
   useEffect(() => {
     const { clientX, clientY } = lastMousePositionRef.current
@@ -354,7 +464,7 @@ function PetWindow(): React.JSX.Element {
       }
     })
     return () => cancelAnimationFrame(frameId)
-  }, [message, isBubbleClosing])
+  }, [message, isBubbleClosing, scheduleInputPlacement])
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent): void => {
@@ -399,10 +509,16 @@ function PetWindow(): React.JSX.Element {
       return
     }
 
+    if (scheduleInputPlacement) {
+      window.desktopPetAPI.closePetScheduleInput()
+    }
+
     pointerIdRef.current = event.pointerId
+    setIsPointerActive(true)
     pointerStartRef.current = payload
     capturedElementRef.current = event.currentTarget
     isDraggingRef.current = false
+    setIsDraggingVisual(false)
     suppressClickRef.current = false
     event.currentTarget.setPointerCapture(event.pointerId)
     setInteractive(true)
@@ -426,6 +542,8 @@ function PetWindow(): React.JSX.Element {
         return
       }
       isDraggingRef.current = true
+      setIsDraggingVisual(true)
+      setAnimationKey((key) => key + 1)
       suppressClickRef.current = true
     }
 
@@ -463,6 +581,8 @@ function PetWindow(): React.JSX.Element {
     pointerStartRef.current = null
     capturedElementRef.current = null
     isDraggingRef.current = false
+    setIsPointerActive(false)
+    setIsDraggingVisual(false)
     if (wasDragging) {
       suppressContextUntilRef.current = performance.now() + 300
     }
@@ -490,8 +610,17 @@ function PetWindow(): React.JSX.Element {
   }
 
   return (
-    <main className="pet-window">
-      {message && (
+    <main
+      className={`pet-window${scheduleInputPlacement ? ' is-chatting' : ''}`}
+      style={
+        scheduleInputPlacement
+          ? ({
+              '--pet-stage-center-x': `${scheduleInputPlacement.petCenterX}px`
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
+      {message && !scheduleInputPlacement && (
         <SpeechBubble
           text={displayedText}
           isClosing={isBubbleClosing}
@@ -499,8 +628,14 @@ function PetWindow(): React.JSX.Element {
           onCompleteTyping={completeTyping}
         />
       )}
+      {scheduleInputPlacement && (
+        <PetScheduleInput
+          side={scheduleInputPlacement.side}
+          onClose={() => window.desktopPetAPI.closePetScheduleInput()}
+        />
+      )}
       <PetSprite
-        emotion={emotion}
+        emotion={visualEmotion}
         frame={frame}
         animationKey={animationKey}
         onPointerDown={handlePointerDown}

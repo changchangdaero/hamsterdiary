@@ -12,8 +12,12 @@ import {
   type PetIpcController
 } from './ipc/registerPetIpc'
 import { registerScheduleIpc } from './ipc/registerScheduleIpc'
+import { registerScheduleConversationIpc } from './ipc/registerScheduleConversationIpc'
 import { registerReminderIpc } from './ipc/registerReminderIpc'
-import { runtimeStore, settingsStore } from './stores'
+import { registerHolidayIpc } from './ipc/registerHolidayIpc'
+import { registerGeminiKeyIpc } from './ipc/registerGeminiKeyIpc'
+import { registerHelpIpc } from './ipc/registerHelpIpc'
+import { runtimeStore, schedulesStore, settingsStore } from './stores'
 import {
   createAppTray,
   type AppTrayController
@@ -22,13 +26,18 @@ import { createMainWindow } from './windows/createMainWindow'
 import { createPetWindow } from './windows/createPetWindow'
 import { createScheduleDiaryWindow } from './windows/createScheduleDiaryWindow'
 import { createSettingsWindow } from './windows/createSettingsWindow'
+import { createOnboardingWindow } from './windows/createOnboardingWindow'
+import { createHelpWindow } from './windows/createHelpWindow'
+import { getGeminiKeyStatus } from './services/geminiKeyService'
 import {
   isPetPositionVisible,
   migratePetPosition,
   PET_WINDOW_LAYOUT_VERSION,
+  PET_WINDOW_SIZE,
   resolvePetPosition
 } from './windows/petPosition'
 import { IPC_CHANNELS } from '../shared/ipcChannels'
+import type { PetScheduleInputPlacement } from '../shared/types/pet'
 import {
   NotificationScheduler,
   type PetNotificationRequest
@@ -38,6 +47,7 @@ let mainWindow: BrowserWindow | null = null
 let petWindow: BrowserWindow | null = null
 let scheduleDiaryWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
+let helpWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
 let petIpcController: PetIpcController | null = null
 let notificationScheduler: NotificationScheduler | null = null
@@ -45,6 +55,7 @@ let isQuitting = false
 let isScheduleDiaryReady = false
 let pendingNewSchedule = false
 let pendingNewScheduleDate: string | undefined
+let petScheduleInputPlacement: PetScheduleInputPlacement | null = null
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
 const isWindowAlive = (
@@ -53,6 +64,39 @@ const isWindowAlive = (
 
 const refreshTrayMenu = (): void => {
   appTray?.refreshMenu()
+}
+
+const broadcastSchedulesChanged = (
+  schedules: import('../shared/types/schedule').Schedule[]
+): void => {
+  console.log('[schedule:ipc] broadcasting changed schedules', {
+    count: schedules.length
+  })
+  for (const window of [
+    mainWindow,
+    petWindow,
+    scheduleDiaryWindow,
+    settingsWindow
+  ]) {
+    if (isWindowAlive(window)) {
+      window.webContents.send(IPC_CHANNELS.schedulesChanged, schedules)
+    }
+  }
+}
+
+const closePetScheduleInput = (): void => {
+  if (!petScheduleInputPlacement || !isWindowAlive(petWindow)) {
+    petScheduleInputPlacement = null
+    return
+  }
+
+  const bounds = petWindow.getBounds()
+  console.log('[pet:schedule-input] closing', { bounds })
+  petScheduleInputPlacement = null
+  petWindow.webContents.send(IPC_CHANNELS.petScheduleInputClosed)
+  console.log('[pet:schedule-input] closed', {
+    bounds: petWindow.getBounds()
+  })
 }
 
 const ensurePetWindow = (): BrowserWindow => {
@@ -86,6 +130,7 @@ const ensurePetWindow = (): BrowserWindow => {
     shouldShow: () => settingsStore.get('petEnabled')
   })
   petWindow.once('closed', () => {
+    closePetScheduleInput()
     petWindow = null
     refreshTrayMenu()
   })
@@ -113,12 +158,39 @@ const showPet = (focus = false): BrowserWindow => {
 const hidePet = (): void => {
   settingsStore.set('petEnabled', false)
   petIpcController?.cancelDrag()
+  closePetScheduleInput()
   if (isWindowAlive(petWindow)) {
     petWindow.webContents.send(IPC_CHANNELS.petWindowHidden)
     petWindow.setIgnoreMouseEvents(true, { forward: true })
     petWindow.hide()
   }
   refreshTrayMenu()
+}
+
+const togglePetScheduleInput = (): void => {
+  if (petScheduleInputPlacement) {
+    closePetScheduleInput()
+    return
+  }
+
+  const currentPetWindow = showPet()
+  const bounds = currentPetWindow.getBounds()
+  const placement: PetScheduleInputPlacement = {
+    side: 'right',
+    petCenterX: PET_WINDOW_SIZE.width / 2
+  }
+
+  console.log('[pet:schedule-input] opening', { bounds })
+  petScheduleInputPlacement = placement
+  currentPetWindow.setIgnoreMouseEvents(false)
+  currentPetWindow.webContents.send(
+    IPC_CHANNELS.petScheduleInputOpened,
+    placement
+  )
+  currentPetWindow.focus()
+  console.log('[pet:schedule-input] opened', {
+    bounds: currentPetWindow.getBounds()
+  })
 }
 
 const showFoundationWindow = (): void => {
@@ -137,6 +209,18 @@ const showFoundationWindow = (): void => {
   mainWindow.focus()
 }
 
+const showOnboardingWindow = (): void => {
+  if (isWindowAlive(mainWindow)) {
+    mainWindow.show()
+    mainWindow.focus()
+    return
+  }
+  mainWindow = createOnboardingWindow()
+  mainWindow.once('closed', () => {
+    mainWindow = null
+  })
+}
+
 const openSettingsWindow = (): void => {
   if (!isWindowAlive(settingsWindow)) {
     settingsWindow = createSettingsWindow()
@@ -150,6 +234,23 @@ const openSettingsWindow = (): void => {
   }
   settingsWindow.show()
   settingsWindow.focus()
+}
+
+const openHelpWindow = (): void => {
+  if (!isWindowAlive(helpWindow)) {
+    helpWindow = createHelpWindow()
+    helpWindow.once('closed', () => {
+      helpWindow = null
+    })
+    return
+  }
+  if (helpWindow.isMinimized()) helpWindow.restore()
+  helpWindow.show()
+  helpWindow.focus()
+}
+
+const closeHelpWindow = (): void => {
+  if (isWindowAlive(helpWindow)) helpWindow.close()
 }
 
 const showPetNotification = (request: PetNotificationRequest): void => {
@@ -182,6 +283,57 @@ const showPetNotification = (request: PetNotificationRequest): void => {
       title: request.title,
       body: request.message
     }).show()
+  }
+}
+
+const isSameLocalDate = (left: Date, right: Date): boolean =>
+  left.getFullYear() === right.getFullYear() &&
+  left.getMonth() === right.getMonth() &&
+  left.getDate() === right.getDate()
+
+const buildTodayScheduleMessage = (): string => {
+  const now = new Date()
+  const todaySchedules = schedulesStore
+    .get('schedules')
+    .filter((schedule) => isSameLocalDate(new Date(schedule.startAt), now))
+    .sort((left, right) => left.startAt.localeCompare(right.startAt))
+
+  if (todaySchedules.length === 0) {
+    return '오늘은 등록된 일정이 없어. 여유로운 하루 보내자!'
+  }
+
+  const visibleSchedules = todaySchedules.slice(0, 5)
+  const scheduleLines = visibleSchedules.map((schedule) => {
+    const time = new Date(schedule.startAt).toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    const completed = schedule.status === 'completed' ? ' (완료)' : ''
+    return `${time} ${schedule.title}${completed}`
+  })
+  const hiddenCount = todaySchedules.length - visibleSchedules.length
+  if (hiddenCount > 0) {
+    scheduleLines.push(`그리고 ${hiddenCount}개가 더 있어.`)
+  }
+  return `오늘 일정은 ${todaySchedules.length}개야!\n${scheduleLines.join('\n')}`
+}
+
+const announceTodaySchedules = (): void => {
+  if (!settingsStore.get('petEnabled')) return
+  const window = ensurePetWindow()
+  const deliver = (): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(IPC_CHANNELS.petMessageShown, {
+      text: buildTodayScheduleMessage(),
+      finalEmotion: 'happy',
+      typingSpeed: 24,
+      visibleDuration: 9_000
+    })
+  }
+  if (window.webContents.isLoadingMainFrame()) {
+    window.webContents.once('did-finish-load', deliver)
+  } else {
+    deliver()
   }
 }
 
@@ -242,7 +394,8 @@ if (!hasSingleInstanceLock) {
   app.quit()
 } else {
   app.on('second-instance', () => {
-    showPet(true)
+    if (getGeminiKeyStatus().configured) showPet(true)
+    else showOnboardingWindow()
   })
 
   void app.whenReady().then(() => {
@@ -259,7 +412,10 @@ if (!hasSingleInstanceLock) {
       hidePet,
       openScheduleDiary: () => openScheduleDiary(false),
       openNewSchedule: () => openScheduleDiary(true),
+      togglePetScheduleInput,
+      closePetScheduleInput,
       openSettings: openSettingsWindow,
+      openHelp: openHelpWindow,
       quitApp
     })
     registerScheduleIpc({
@@ -271,7 +427,12 @@ if (!hasSingleInstanceLock) {
       ],
       getScheduleDiaryWindow: () => scheduleDiaryWindow,
       openScheduleDiary,
-      scheduleDiaryReady: markScheduleDiaryReady
+      scheduleDiaryReady: markScheduleDiaryReady,
+      schedulesChanged: broadcastSchedulesChanged
+    })
+    registerScheduleConversationIpc({
+      getPetWindow: () => petWindow,
+      schedulesChanged: broadcastSchedulesChanged
     })
     registerReminderIpc({
       getTrustedWindows: () => [
@@ -282,8 +443,44 @@ if (!hasSingleInstanceLock) {
       ],
       scheduler: notificationScheduler
     })
+    registerHolidayIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow
+      ]
+    })
+    registerGeminiKeyIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow
+      ],
+      completeOnboarding: () => {
+        if (isWindowAlive(mainWindow)) mainWindow.close()
+        if (settingsStore.get('petEnabled')) showPet()
+      },
+      openSettings: openSettingsWindow
+    })
+    registerHelpIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow,
+        helpWindow
+      ],
+      openHelp: openHelpWindow,
+      closeHelp: closeHelpWindow
+    })
 
-    ensurePetWindow()
+    if (getGeminiKeyStatus().configured) {
+      ensurePetWindow()
+    } else {
+      showOnboardingWindow()
+    }
     appTray = createAppTray({
       isPetVisible: () => isWindowAlive(petWindow) && petWindow.isVisible(),
       showPet: () => showPet(),
@@ -292,6 +489,7 @@ if (!hasSingleInstanceLock) {
       openNewSchedule: () => openScheduleDiary(true),
       showFoundation: showFoundationWindow,
       openSettings: openSettingsWindow,
+      openHelp: openHelpWindow,
       quitApp
     })
 
@@ -320,11 +518,16 @@ if (!hasSingleInstanceLock) {
       notificationScheduler?.rescheduleRepeating()
     })
 
-    if (settingsStore.get('petEnabled')) {
+    if (getGeminiKeyStatus().configured && settingsStore.get('petEnabled')) {
       showPet()
+      const todayScheduleTimer = setTimeout(announceTodaySchedules, 1_200)
+      todayScheduleTimer.unref()
     }
 
-    app.on('activate', () => showPet())
+    app.on('activate', () => {
+      if (getGeminiKeyStatus().configured) showPet()
+      else showOnboardingWindow()
+    })
   })
 
   app.on('before-quit', () => {

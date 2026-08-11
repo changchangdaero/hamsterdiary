@@ -4,6 +4,7 @@ import { IPC_CHANNELS } from '../shared/ipcChannels'
 import type { DesktopPetAPI } from '../shared/types/foundation'
 import type {
   PetEmotion,
+  PetScheduleInputPlacement,
   ResolvedPetMessage
 } from '../shared/types/pet'
 
@@ -44,6 +45,15 @@ const desktopPetAPI: DesktopPetAPI = {
   hidePetMessage: () => ipcRenderer.invoke(IPC_CHANNELS.hidePetMessage),
   showPetContextMenu: () =>
     ipcRenderer.send(IPC_CHANNELS.showPetContextMenu),
+  closePetScheduleInput: () =>
+    ipcRenderer.send(IPC_CHANNELS.closePetScheduleInput),
+  onPetScheduleInputOpened: (listener) =>
+    subscribe<PetScheduleInputPlacement>(
+      IPC_CHANNELS.petScheduleInputOpened,
+      listener
+    ),
+  onPetScheduleInputClosed: (listener) =>
+    subscribeWithoutPayload(IPC_CHANNELS.petScheduleInputClosed, listener),
   onPetEmotionChanged: (listener) =>
     subscribe<PetEmotion>(IPC_CHANNELS.petEmotionChanged, listener),
   onPetMessageShown: (listener) =>
@@ -52,6 +62,8 @@ const desktopPetAPI: DesktopPetAPI = {
     subscribeWithoutPayload(IPC_CHANNELS.petMessageHidden, listener),
   onPetWindowHidden: (listener) =>
     subscribeWithoutPayload(IPC_CHANNELS.petWindowHidden, listener),
+  converseAboutSchedule: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.converseAboutSchedule, request),
   listSchedules: () => ipcRenderer.invoke(IPC_CHANNELS.listSchedules),
   createSchedule: (draft) =>
     ipcRenderer.invoke(IPC_CHANNELS.createSchedule, draft),
@@ -72,6 +84,23 @@ const desktopPetAPI: DesktopPetAPI = {
       IPC_CHANNELS.scheduleOpenNewRequested,
       listener
     ),
+  onSchedulesChanged: (listener) =>
+    subscribe(IPC_CHANNELS.schedulesChanged, listener),
+  listHolidays: (years) =>
+    ipcRenderer.invoke(IPC_CHANNELS.listHolidays, years),
+  getGeminiKeyStatus: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.getGeminiKeyStatus),
+  saveGeminiKey: (key) =>
+    ipcRenderer.invoke(IPC_CHANNELS.saveGeminiKey, key),
+  deleteGeminiKey: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.deleteGeminiKey),
+  openGeminiKeyPage: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.openGeminiKeyPage),
+  completeOnboarding: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.completeOnboarding),
+  openSettings: () => ipcRenderer.invoke(IPC_CHANNELS.openSettings),
+  openHelp: () => ipcRenderer.invoke(IPC_CHANNELS.openHelp),
+  closeHelp: () => ipcRenderer.invoke(IPC_CHANNELS.closeHelp),
   getReminderSettings: () =>
     ipcRenderer.invoke(IPC_CHANNELS.getReminderSettings),
   updateReminderSettings: (settings) =>

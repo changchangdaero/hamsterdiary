@@ -5,6 +5,7 @@ import {
   type ReminderKind,
   type ReminderSettings
 } from '../../../shared/types/notifications'
+import type { GeminiKeyStatus } from '../../../shared/types/geminiKey'
 
 function SettingsWindow(): React.JSX.Element {
   const [settings, setSettings] = useState<ReminderSettings>(
@@ -12,13 +13,44 @@ function SettingsWindow(): React.JSX.Element {
   )
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
+  const [keyStatus, setKeyStatus] = useState<GeminiKeyStatus>({ configured: false })
+  const [apiKey, setApiKey] = useState('')
 
   useEffect(() => {
     void window.desktopPetAPI
       .getReminderSettings()
       .then(setSettings)
       .catch(() => setStatus('설정을 불러오지 못했습니다.'))
+    void window.desktopPetAPI
+      .getGeminiKeyStatus()
+      .then(setKeyStatus)
+      .catch(() => setStatus('API 키 상태를 불러오지 못했습니다.'))
   }, [])
+
+  const saveApiKey = async (): Promise<void> => {
+    setSaving(true)
+    setStatus('')
+    try {
+      setKeyStatus(await window.desktopPetAPI.saveGeminiKey(apiKey))
+      setApiKey('')
+      setStatus('Gemini API 키를 저장했어.')
+    } catch {
+      setStatus('API 키 형식을 다시 확인해줘.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteApiKey = async (): Promise<void> => {
+    if (!window.confirm('저장된 Gemini API 키를 삭제할까?')) return
+    try {
+      setKeyStatus(await window.desktopPetAPI.deleteGeminiKey())
+      setApiKey('')
+      setStatus('API 키를 삭제했어. 다음 실행 때 온보딩이 다시 열려.')
+    } catch {
+      setStatus('API 키를 삭제하지 못했어.')
+    }
+  }
 
   const updateReminder = (
     kind: ReminderKind,
@@ -67,6 +99,50 @@ function SettingsWindow(): React.JSX.Element {
         <h1>리마인더 설정</h1>
         <span>햄스터가 말을 거는 간격과 조용한 시간을 정할 수 있어요.</span>
       </header>
+
+      <section className="reminder-setting-card api-key-settings">
+        <div className="setting-card-heading">
+          <div>
+            <h2>Gemini API 키</h2>
+            <p>키는 이 컴퓨터에만 저장되고 main 프로세스에서만 사용돼.</p>
+          </div>
+          <strong className={`key-status ${keyStatus.configured ? 'is-set' : ''}`}>
+            {keyStatus.configured ? '설정됨' : '없음'}
+          </strong>
+        </div>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => void window.desktopPetAPI.openGeminiKeyPage()}
+        >
+          AI Studio 열기
+        </button>
+        <label>
+          {keyStatus.configured ? '새 키로 변경' : 'API 키 입력'}
+          <input
+            type="password"
+            value={apiKey}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Gemini API 키"
+            onChange={(event) => setApiKey(event.target.value)}
+          />
+        </label>
+        <div className="api-key-actions">
+          <button
+            type="button"
+            disabled={saving || apiKey.trim().length === 0}
+            onClick={() => void saveApiKey()}
+          >
+            {keyStatus.configured ? '키 변경' : '키 저장'}
+          </button>
+          {keyStatus.configured && (
+            <button type="button" className="danger" onClick={() => void deleteApiKey()}>
+              키 삭제
+            </button>
+          )}
+        </div>
+      </section>
 
       {(['water', 'stretch'] as const).map((kind) => {
         const label = kind === 'water' ? '물 마시기' : '스트레칭'

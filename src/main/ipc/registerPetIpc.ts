@@ -30,7 +30,10 @@ interface RegisterPetIpcOptions {
   hidePet: () => void
   openScheduleDiary: () => void
   openNewSchedule: () => void
+  togglePetScheduleInput: () => void
+  closePetScheduleInput: () => void
   openSettings: () => void
+  openHelp: () => void
   quitApp: () => void
 }
 
@@ -404,6 +407,7 @@ export const registerPetIpc = (
     Menu.buildFromTemplate([
       { label: '일정 다이어리 열기', click: options.openScheduleDiary },
       { label: '새 일정 추가', click: options.openNewSchedule },
+      { label: '말 걸기', click: options.togglePetScheduleInput },
       { type: 'separator' },
       {
         label: '펫 표시',
@@ -414,8 +418,20 @@ export const registerPetIpc = (
       { label: '펫 숨기기', click: options.hidePet },
       { type: 'separator' },
       { label: '설정', click: options.openSettings },
+      { label: '도움말', click: options.openHelp },
       { label: '앱 종료', click: options.quitApp }
     ]).popup({ window: petWindow })
+  }
+
+  const closeScheduleInput = (
+    event: IpcMainEvent,
+    ...args: unknown[]
+  ): void => {
+    const petWindow = options.getPetWindow()
+    if (!isPetSender(event, petWindow) || args.length !== 0) {
+      return
+    }
+    options.closePetScheduleInput()
   }
 
   ipcMain.on(IPC_CHANNELS.setPetMouseInteractive, setMouseInteractive)
@@ -423,6 +439,7 @@ export const registerPetIpc = (
   ipcMain.on(IPC_CHANNELS.movePetDrag, moveDrag)
   ipcMain.on(IPC_CHANNELS.endPetDrag, endDrag)
   ipcMain.on(IPC_CHANNELS.showPetContextMenu, showContextMenu)
+  ipcMain.on(IPC_CHANNELS.closePetScheduleInput, closeScheduleInput)
   ipcMain.handle(IPC_CHANNELS.setPetEmotion, setEmotion)
   ipcMain.handle(IPC_CHANNELS.showPetMessage, showMessage)
   ipcMain.handle(IPC_CHANNELS.hidePetMessage, hideMessage)
@@ -437,6 +454,10 @@ export const registerPetIpc = (
     ipcMain.removeListener(IPC_CHANNELS.movePetDrag, moveDrag)
     ipcMain.removeListener(IPC_CHANNELS.endPetDrag, endDrag)
     ipcMain.removeListener(IPC_CHANNELS.showPetContextMenu, showContextMenu)
+    ipcMain.removeListener(
+      IPC_CHANNELS.closePetScheduleInput,
+      closeScheduleInput
+    )
     ipcMain.removeHandler(IPC_CHANNELS.setPetEmotion)
     ipcMain.removeHandler(IPC_CHANNELS.showPetMessage)
     ipcMain.removeHandler(IPC_CHANNELS.hidePetMessage)

@@ -29,3 +29,8 @@ export interface PetDragMovePayload {
   screenX: number
   screenY: number
 }
+
+export interface PetScheduleInputPlacement {
+  side: 'left' | 'right'
+  petCenterX: number
+}
