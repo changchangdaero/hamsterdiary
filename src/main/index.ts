@@ -12,6 +12,7 @@ import {
   type PetIpcController
 } from './ipc/registerPetIpc'
 import { registerScheduleIpc } from './ipc/registerScheduleIpc'
+import { registerScheduleConversationIpc } from './ipc/registerScheduleConversationIpc'
 import { registerReminderIpc } from './ipc/registerReminderIpc'
 import { runtimeStore, settingsStore } from './stores'
 import {
@@ -60,6 +61,24 @@ const isWindowAlive = (
 
 const refreshTrayMenu = (): void => {
   appTray?.refreshMenu()
+}
+
+const broadcastSchedulesChanged = (
+  schedules: import('../shared/types/schedule').Schedule[]
+): void => {
+  console.log('[schedule:ipc] broadcasting changed schedules', {
+    count: schedules.length
+  })
+  for (const window of [
+    mainWindow,
+    petWindow,
+    scheduleDiaryWindow,
+    settingsWindow
+  ]) {
+    if (isWindowAlive(window)) {
+      window.webContents.send(IPC_CHANNELS.schedulesChanged, schedules)
+    }
+  }
 }
 
 const closePetScheduleInput = (): void => {
@@ -358,7 +377,12 @@ if (!hasSingleInstanceLock) {
       ],
       getScheduleDiaryWindow: () => scheduleDiaryWindow,
       openScheduleDiary,
-      scheduleDiaryReady: markScheduleDiaryReady
+      scheduleDiaryReady: markScheduleDiaryReady,
+      schedulesChanged: broadcastSchedulesChanged
+    })
+    registerScheduleConversationIpc({
+      getPetWindow: () => petWindow,
+      schedulesChanged: broadcastSchedulesChanged
     })
     registerReminderIpc({
       getTrustedWindows: () => [

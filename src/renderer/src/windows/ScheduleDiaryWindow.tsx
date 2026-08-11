@@ -107,10 +107,18 @@ function ScheduleDiaryWindow(): React.JSX.Element {
       })
     const unsubscribe =
       window.desktopPetAPI.onScheduleOpenNewRequested(openNewForm)
+    const unsubscribeSchedulesChanged =
+      window.desktopPetAPI.onSchedulesChanged((items) => {
+        console.log('[schedule:ui] applying changed schedules', {
+          count: items.length
+        })
+        setSchedules(items)
+      })
     window.desktopPetAPI.notifyScheduleDiaryReady()
     return () => {
       active = false
       unsubscribe()
+      unsubscribeSchedulesChanged()
     }
   }, [openNewForm])
 

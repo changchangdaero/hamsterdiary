@@ -607,6 +607,15 @@ dd {
   gap: 6px;
 }
 
+.pet-inline-reply {
+  margin: 0 0 9px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #f4e8d8;
+  background: #2a2119;
+  line-height: 1.45;
+}
+
 .pet-inline-preview {
   display: grid;
   gap: 7px;

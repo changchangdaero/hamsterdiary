@@ -11,6 +11,13 @@ Electron, React, TypeScript, electron-store 기반 데스크톱 펫 일정 앱�
 
 ## 실행
 
+프로젝트 루트에서 `.env.example`을 `.env`로 복사한 뒤 Gemini API 키를
+설정합니다. `.env`는 Git에서 제외되며 빌드 결과에 포함되지 않습니다.
+
+```dotenv
+GEMINI_API_KEY=your_api_key
+```
+
 ```powershell
 npm.cmd install
 npm.cmd run dev

@@ -62,6 +62,8 @@ const desktopPetAPI: DesktopPetAPI = {
     subscribeWithoutPayload(IPC_CHANNELS.petMessageHidden, listener),
   onPetWindowHidden: (listener) =>
     subscribeWithoutPayload(IPC_CHANNELS.petWindowHidden, listener),
+  converseAboutSchedule: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.converseAboutSchedule, request),
   listSchedules: () => ipcRenderer.invoke(IPC_CHANNELS.listSchedules),
   createSchedule: (draft) =>
     ipcRenderer.invoke(IPC_CHANNELS.createSchedule, draft),
@@ -82,6 +84,8 @@ const desktopPetAPI: DesktopPetAPI = {
       IPC_CHANNELS.scheduleOpenNewRequested,
       listener
     ),
+  onSchedulesChanged: (listener) =>
+    subscribe(IPC_CHANNELS.schedulesChanged, listener),
   getReminderSettings: () =>
     ipcRenderer.invoke(IPC_CHANNELS.getReminderSettings),
   updateReminderSettings: (settings) =>

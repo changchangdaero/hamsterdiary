@@ -1,83 +1,93 @@
-// 펫 창 내부에서 자연어 일정을 확인·수정해 기존 저장 경로로 전달하는 입력바입니다.
 import { useEffect, useState } from 'react'
 import type { PetScheduleInputPlacement } from '../../../shared/types/pet'
-import { parseSchedule, type ParsedSchedule } from '../scheduleParser'
+import type { ScheduleConversationTurn } from '../../../shared/types/scheduleConversation'
 
 interface PetScheduleInputProps {
   side: PetScheduleInputPlacement['side']
   onClose: () => void
 }
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-const TIME_PATTERN = /^\d{2}:\d{2}$/
+const FALLBACK_MESSAGE = '지금 대화가 잘 안 돼, 직접 입력해줄래?'
 
 function PetScheduleInput({
   side,
   onClose
 }: PetScheduleInputProps): React.JSX.Element {
   const [text, setText] = useState('')
-  const [preview, setPreview] = useState<ParsedSchedule | null>(null)
+  const [reply, setReply] = useState('어떤 일정을 잡아볼까?')
+  const [history, setHistory] = useState<ScheduleConversationTurn[]>([])
+  const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
+      if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [onClose])
 
-  const parseText = (): void => {
-    const normalized = text.trim()
-    if (!normalized) {
-      setPreview(null)
-      setError('일정 문장을 입력해주세요.')
-      return
-    }
-    setPreview(parseSchedule(normalized))
-    setError('')
+  const fallBackToManualForm = async (date?: string | null): Promise<void> => {
+    await window.desktopPetAPI.showPetMessage({
+      text: FALLBACK_MESSAGE,
+      finalEmotion: 'sad',
+      visibleDuration: 6_000
+    })
+    await window.desktopPetAPI.openNewSchedule(date ?? undefined)
+    onClose()
   }
 
-  const updatePreview = (
-    field: 'title' | 'date' | 'time',
-    value: string
-  ): void => {
-    setPreview((current) =>
-      current === null ? null : { ...current, [field]: value }
-    )
+  const sendMessage = async (): Promise<void> => {
+    const message = text.trim()
+    if (!message || pending) {
+      if (!message) setError('햄스터에게 할 말을 입력해줘.')
+      return
+    }
+
+    setPending(true)
     setError('')
-  }
-
-  const save = async (): Promise<void> => {
-    if (!preview || saving) {
-      return
-    }
-    if (!preview.title.trim()) {
-      setError('일정 제목을 입력해주세요.')
-      return
-    }
-    if (!DATE_PATTERN.test(preview.date) || !TIME_PATTERN.test(preview.time)) {
-      setError('날짜와 시간을 확인해주세요.')
-      return
-    }
-
-    setSaving(true)
+    setText('')
     try {
-      await window.desktopPetAPI.createSchedule({
-        title: preview.title.trim(),
-        date: preview.date,
-        time: preview.time,
-        reminderMinutesBefore: 10,
-        memo: ''
+      const result = await window.desktopPetAPI.converseAboutSchedule({
+        message,
+        history
       })
-      onClose()
+      setReply(result.reply)
+      setHistory((current) => [
+        ...current,
+        { role: 'user', text: message },
+        { role: 'assistant', text: JSON.stringify(result) }
+      ])
+
+      if (result.phase === 'completed') {
+        await window.desktopPetAPI.showPetMessage({
+          text: result.reply,
+          finalEmotion: 'happy',
+          visibleDuration: 5_000
+        })
+        onClose()
+        return
+      }
+      if (result.phase === 'cancelled') {
+        await window.desktopPetAPI.showPetMessage({
+          text: result.reply,
+          finalEmotion: 'idle',
+          visibleDuration: 4_000
+        })
+        onClose()
+        return
+      }
     } catch {
-      setError('일정을 저장하지 못했습니다. 입력값을 확인해주세요.')
-      setSaving(false)
+      try {
+        await fallBackToManualForm()
+      } catch {
+        setReply(FALLBACK_MESSAGE)
+        setError('수동 입력 폼도 열지 못했어. 잠시 후 다시 시도해줘.')
+        setPending(false)
+      }
+      return
     }
+    setPending(false)
   }
 
   return (
@@ -85,68 +95,42 @@ function PetScheduleInput({
       className={`pet-inline-input is-${side}`}
       data-pet-schedule-input
       data-interactive-hitbox="true"
-      aria-label="햄스터에게 일정 말하기"
+      aria-label="햄스터와 대화로 일정 잡기"
     >
+      <p className="pet-inline-reply" aria-live="polite">
+        {pending ? '생각 중이야…' : reply}
+      </p>
       <div className="pet-inline-query">
         <input
           value={text}
-          maxLength={200}
+          maxLength={500}
           autoFocus
+          disabled={pending}
           placeholder="내일 오후 3시 회의"
-          aria-label="자연어 일정"
+          aria-label="햄스터에게 할 말"
           onChange={(event) => {
             setText(event.target.value)
-            setPreview(null)
             setError('')
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault()
-              parseText()
+              void sendMessage()
             }
           }}
         />
-        <button type="button" className="confirm" onClick={parseText}>
-          확인
+        <button
+          type="button"
+          className="confirm"
+          disabled={pending}
+          onClick={() => void sendMessage()}
+        >
+          {pending ? '…' : '보내기'}
         </button>
-        <button type="button" className="close" aria-label="입력바 닫기" onClick={onClose}>
+        <button type="button" className="close" aria-label="대화 닫기" onClick={onClose}>
           ×
         </button>
       </div>
-
-      {preview && (
-        <div className="pet-inline-preview" aria-label="일정 미리보기">
-          <input
-            value={preview.title}
-            maxLength={80}
-            aria-label="일정 제목"
-            onChange={(event) => updatePreview('title', event.target.value)}
-          />
-          <div>
-            <input
-              type="date"
-              value={preview.date}
-              aria-label="일정 날짜"
-              onChange={(event) => updatePreview('date', event.target.value)}
-            />
-            <input
-              type="time"
-              value={preview.time}
-              aria-label="일정 시간"
-              onChange={(event) => updatePreview('time', event.target.value)}
-            />
-          </div>
-          {!preview.matched ? (
-            <p>날짜와 시간을 못 알아들었어요. 직접 확인해주세요.</p>
-          ) : (
-            !preview.timeMatched && <p>시간을 직접 확인해주세요.</p>
-          )}
-          <button type="button" disabled={saving} onClick={() => void save()}>
-            {saving ? '저장 중' : '일정 저장'}
-          </button>
-        </div>
-      )}
-
       {error && <p className="pet-inline-error" role="alert">{error}</p>}
     </section>
   )

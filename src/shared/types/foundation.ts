@@ -21,6 +21,10 @@ import type {
   ReminderControlPayload,
   ReminderSettings
 } from './notifications'
+import type {
+  ScheduleConversationRequest,
+  ScheduleConversationResponse
+} from './scheduleConversation'
 
 export interface RuntimeVersions {
   electron: string
@@ -59,6 +63,9 @@ export interface DesktopPetAPI {
   ) => () => void
   onPetMessageHidden: (listener: () => void) => () => void
   onPetWindowHidden: (listener: () => void) => () => void
+  converseAboutSchedule: (
+    request: ScheduleConversationRequest
+  ) => Promise<ScheduleConversationResponse>
   listSchedules: () => Promise<Schedule[]>
   createSchedule: (draft: ScheduleDraft) => Promise<Schedule[]>
   updateSchedule: (payload: UpdateSchedulePayload) => Promise<Schedule[]>
@@ -72,6 +79,7 @@ export interface DesktopPetAPI {
   onScheduleOpenNewRequested: (
     listener: (date?: string) => void
   ) => () => void
+  onSchedulesChanged: (listener: (schedules: Schedule[]) => void) => () => void
   getReminderSettings: () => Promise<ReminderSettings>
   updateReminderSettings: (
     settings: ReminderSettings

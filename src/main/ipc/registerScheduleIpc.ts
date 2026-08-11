@@ -19,6 +19,7 @@ interface RegisterScheduleIpcOptions {
   getScheduleDiaryWindow: () => BrowserWindow | null
   openScheduleDiary: (openNew: boolean, date?: string) => void
   scheduleDiaryReady: () => void
+  schedulesChanged: (schedules: Schedule[]) => void
 }
 
 const REMINDERS: ScheduleReminderMinutes[] = [0, 5, 10, 30, 60]
@@ -181,6 +182,229 @@ const writeSchedules = (schedules: Schedule[]): Schedule[] => {
   )
 }
 
+export interface BatchScheduleResult {
+  schedules: Schedule[]
+  affected: Schedule[]
+}
+
+export const listStoredSchedules = (): Schedule[] => sortedSchedules()
+
+const scheduleDateKey = (schedule: Schedule): string => {
+  const date = new Date(schedule.startAt)
+  const pad = (value: number): string => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+export const listStoredSchedulesFiltered = (
+  dateFrom?: unknown,
+  dateTo?: unknown,
+  query?: unknown
+): Schedule[] => {
+  const from = dateFrom === undefined ? undefined : parseOptionalDate(dateFrom)
+  const to = dateTo === undefined ? undefined : parseOptionalDate(dateTo)
+  if (from && to && from > to) {
+    throw new PublicScheduleError('일정 조회 시작일이 종료일보다 늦습니다.')
+  }
+  if (query !== undefined && typeof query !== 'string') {
+    throw new PublicScheduleError('일정 검색어가 올바르지 않습니다.')
+  }
+  const normalizedQuery = query?.trim().toLocaleLowerCase('ko-KR')
+  const result = sortedSchedules().filter((schedule) => {
+    const date = scheduleDateKey(schedule)
+    return (
+      (!from || date >= from) &&
+      (!to || date <= to) &&
+      (!normalizedQuery ||
+        schedule.title.toLocaleLowerCase('ko-KR').includes(normalizedQuery))
+    )
+  })
+  console.log('[schedule:list] function args', { dateFrom: from, dateTo: to, query })
+  console.log('[schedule:list] store result', JSON.stringify(result, null, 2))
+  return result
+}
+
+export const createStoredSchedule = (value: unknown): Schedule[] => {
+  const draft = parseScheduleDraft(value)
+  const now = new Date().toISOString()
+  const schedule: Schedule = {
+    id: randomUUID(),
+    title: draft.title,
+    startAt: draft.startAt,
+    reminderMinutesBefore: draft.reminderMinutesBefore,
+    memo: draft.memo,
+    status: 'scheduled',
+    createdAt: now,
+    updatedAt: now
+  }
+  const updated = writeSchedules([...schedulesStore.get('schedules'), schedule])
+  console.log('[schedule:create] function args', {
+    title: draft.title,
+    date: draft.date,
+    time: draft.time
+  })
+  console.log('[schedule:create] store changed', { eventId: schedule.id })
+  return updated
+}
+
+export const createStoredScheduleFromConversation = (
+  title: unknown,
+  date: unknown,
+  time: unknown
+): Schedule[] =>
+  createStoredSchedule({
+    title,
+    date,
+    time,
+    reminderMinutesBefore: 10,
+    memo: ''
+  })
+
+export const createStoredSchedulesFromConversation = (
+  value: unknown
+): BatchScheduleResult => {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 20) {
+    throw new PublicScheduleError('일괄 일정은 1개 이상 20개 이하로 입력해 주세요.')
+  }
+  const drafts = value.map((item) => {
+    if (typeof item !== 'object' || item === null) {
+      throw new PublicScheduleError('일괄 일정 입력값을 확인해 주세요.')
+    }
+    const raw = item as Record<string, unknown>
+    return parseScheduleDraft({
+      title: raw.title,
+      date: raw.date,
+      time: raw.time,
+      reminderMinutesBefore: 10,
+      memo: ''
+    })
+  })
+  const now = new Date().toISOString()
+  const created: Schedule[] = drafts.map((draft) => ({
+    id: randomUUID(),
+    title: draft.title,
+    startAt: draft.startAt,
+    reminderMinutesBefore: draft.reminderMinutesBefore,
+    memo: draft.memo,
+    status: 'scheduled',
+    createdAt: now,
+    updatedAt: now
+  }))
+  const schedules = writeSchedules([
+    ...schedulesStore.get('schedules'),
+    ...created
+  ])
+  console.log('[schedule:create-batch] function args', {
+    count: created.length,
+    items: drafts.map(({ title, date, time }) => ({ title, date, time }))
+  })
+  console.log('[schedule:create-batch] store changed', {
+    eventIds: created.map((schedule) => schedule.id)
+  })
+  return { schedules, affected: created }
+}
+
+export const deleteStoredScheduleById = (eventId: unknown): Schedule[] => {
+  const id = parseId(String(eventId))
+  const schedules = schedulesStore.get('schedules')
+  console.log('[schedule:delete] function args', { eventId: id })
+  console.log('[schedule:delete] store before', JSON.stringify(schedules, null, 2))
+  if (!schedules.some((schedule) => String(schedule.id) === String(id))) {
+    throw new PublicScheduleError('삭제할 일정을 찾지 못했습니다.')
+  }
+  const updated = writeSchedules(
+    schedules.filter((schedule) => String(schedule.id) !== String(id))
+  )
+  console.log(
+    '[schedule:delete] store after',
+    JSON.stringify(schedulesStore.get('schedules'), null, 2)
+  )
+  return updated
+}
+
+export const deleteStoredSchedulesByIds = (
+  eventIds: unknown
+): BatchScheduleResult => {
+  if (!Array.isArray(eventIds) || eventIds.length === 0) {
+    throw new PublicScheduleError('삭제할 일정 ID 목록이 비어 있습니다.')
+  }
+  const ids = [...new Set(eventIds.map((id) => parseId(String(id))))]
+  const schedules = schedulesStore.get('schedules')
+  const affected = schedules.filter((schedule) =>
+    ids.some((id) => String(id) === String(schedule.id))
+  )
+  if (affected.length !== ids.length) {
+    throw new PublicScheduleError('일괄 삭제할 일정 일부를 찾지 못했습니다.')
+  }
+  const idSet = new Set(ids.map(String))
+  const updated = writeSchedules(
+    schedules.filter((schedule) => !idSet.has(String(schedule.id)))
+  )
+  console.log('[schedule:delete-batch] function args', { eventIds: ids })
+  console.log('[schedule:delete-batch] deleted', {
+    count: affected.length,
+    items: affected.map(({ id, title, startAt }) => ({ id, title, startAt }))
+  })
+  return { schedules: updated, affected }
+}
+
+export const deleteStoredSchedulesByRange = (
+  dateFrom: unknown,
+  dateTo: unknown,
+  query?: unknown
+): BatchScheduleResult => {
+  const affected = listStoredSchedulesFiltered(dateFrom, dateTo, query)
+  const idSet = new Set(affected.map((schedule) => String(schedule.id)))
+  const updated =
+    affected.length === 0
+      ? sortedSchedules()
+      : writeSchedules(
+          schedulesStore
+            .get('schedules')
+            .filter((schedule) => !idSet.has(String(schedule.id)))
+        )
+  console.log('[schedule:delete-range] function args', {
+    dateFrom,
+    dateTo,
+    query
+  })
+  console.log('[schedule:delete-range] deleted', {
+    count: affected.length,
+    items: affected.map(({ id, title, startAt }) => ({ id, title, startAt }))
+  })
+  return { schedules: updated, affected }
+}
+
+export const moveStoredScheduleById = (
+  eventId: unknown,
+  newDate: unknown,
+  newTime: unknown
+): Schedule[] => {
+  const id = parseId(String(eventId))
+  const startAt = parseLocalStartAt(newDate, newTime)
+  const schedules = schedulesStore.get('schedules')
+  console.log('[schedule:move] function args', {
+    eventId: id,
+    newDate,
+    newTime
+  })
+  console.log('[schedule:move] store before', JSON.stringify(schedules, null, 2))
+  if (!schedules.some((schedule) => String(schedule.id) === String(id))) {
+    throw new PublicScheduleError('이동할 일정을 찾지 못했습니다.')
+  }
+  const updated = writeSchedules(
+    schedules.map((schedule) =>
+      String(schedule.id) === String(id)
+        ? { ...schedule, startAt, updatedAt: new Date().toISOString() }
+        : schedule
+    )
+  )
+  console.log(
+    '[schedule:move] store after',
+    JSON.stringify(schedulesStore.get('schedules'), null, 2)
+  )
+  return updated
+}
+
 const safelyHandle = async <T>(operation: () => T): Promise<T> => {
   try {
     return operation()
@@ -218,19 +442,9 @@ export const registerScheduleIpc = (
       if (args.length !== 0) {
         throw new PublicScheduleError('일정 생성 요청이 올바르지 않습니다.')
       }
-      const draft = parseScheduleDraft(value)
-      const now = new Date().toISOString()
-      const schedule: Schedule = {
-        id: randomUUID(),
-        title: draft.title,
-        startAt: draft.startAt,
-        reminderMinutesBefore: draft.reminderMinutesBefore,
-        memo: draft.memo,
-        status: 'scheduled',
-        createdAt: now,
-        updatedAt: now
-      }
-      return writeSchedules([...schedulesStore.get('schedules'), schedule])
+      const updated = createStoredSchedule(value)
+      options.schedulesChanged(updated)
+      return updated
     })
 
   const update = (
@@ -268,9 +482,12 @@ export const registerScheduleIpc = (
         memo: draft.memo,
         updatedAt: new Date().toISOString()
       }
-      return writeSchedules(
+      const result = writeSchedules(
         schedules.map((schedule) => (schedule.id === id ? updated : schedule))
       )
+      console.log('[schedule:update] store changed', { eventId: id })
+      options.schedulesChanged(result)
+      return result
     })
 
   const remove = (
@@ -283,14 +500,9 @@ export const registerScheduleIpc = (
       if (args.length !== 0) {
         throw new PublicScheduleError('일정 삭제 요청이 올바르지 않습니다.')
       }
-      const id = parseId(value)
-      const schedules = schedulesStore.get('schedules')
-      if (!schedules.some((schedule) => schedule.id === id)) {
-        throw new PublicScheduleError('삭제할 일정을 찾지 못했습니다.')
-      }
-      return writeSchedules(
-        schedules.filter((schedule) => schedule.id !== id)
-      )
+      const result = deleteStoredScheduleById(value)
+      options.schedulesChanged(result)
+      return result
     })
 
   const setCompleted = (
@@ -320,7 +532,7 @@ export const registerScheduleIpc = (
       if (!schedules.some((schedule) => schedule.id === id)) {
         throw new PublicScheduleError('일정을 찾지 못했습니다.')
       }
-      return writeSchedules(
+      const result = writeSchedules(
         schedules.map((schedule) =>
           schedule.id === id
             ? {
@@ -331,6 +543,9 @@ export const registerScheduleIpc = (
             : schedule
         )
       )
+      console.log('[schedule:complete] store changed', { eventId: id })
+      options.schedulesChanged(result)
+      return result
     })
 
   const openDiary = (
