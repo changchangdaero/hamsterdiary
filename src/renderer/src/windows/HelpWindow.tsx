@@ -46,7 +46,38 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>2. 내가 챙겨줄게</h2>
+        <h2>2. 할 일도 나한테 맡겨</h2>
+        <div className="help-example-grid">
+          <div>
+            <h3>할 일 추가하기</h3>
+            <ul>
+              <li>입력창 위에서 “할일”을 선택하고 말하면 돼.</li>
+              <Example>장보기</Example>
+              <Example>리포트 제출</Example>
+              <li>할 일 탭에서 직접 타이핑해서 추가할 수도 있어.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>할 일 관리하기</h3>
+            <ul>
+              <li>다 하면 체크박스를 눌러서 완료 표시해.</li>
+              <li>필요 없어진 건 삭제하면 돼.</li>
+              <li>할 일을 다 끝내면 내가 같이 기뻐해줄게!</li>
+            </ul>
+          </div>
+          <div>
+            <h3>💡 일정이랑 뭐가 달라?</h3>
+            <ul>
+              <li>시간이 정해진 건 “일정”이야. 예: 내일 3시 병원</li>
+              <li>언젠가 하면 되는 건 “할일”이야. 예: 우유 사기</li>
+              <li>입력창 위 [일정/할일] 토글로 골라서 넣으면 돼.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="help-card">
+        <h2>3. 내가 챙겨줄게</h2>
         <ul>
           <li>물 마실 시간, 스트레칭할 시간을 내가 알려줄게.</li>
           <li>너무 오래 앉아있으면 “잠깐 일어나자~” 하고 말 걸 거야.</li>
@@ -55,7 +86,7 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>3. 알아두면 좋은 것</h2>
+        <h2>4. 알아두면 좋은 것</h2>
         <ul>
           <li>날짜는 “내일”, “이번 주 금요일”처럼 편하게 말해도 돼.</li>
           <li>여러 일정도 한 번에 말할 수 있어.</li>
@@ -64,9 +95,10 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>4. 그 외에</h2>
+        <h2>5. 그 외에</h2>
         <ul>
           <li>달력에서 전체 일정을 볼 수 있어.</li>
+          <li>집중 타이머를 켜면 나도 옆에서 같이 집중하고 쉴게.</li>
           <li>설정에서 API 키랑 알림을 바꿀 수 있어.</li>
           <li>심심하면 내가 책상 위에서 꼬물거려.</li>
         </ul>
@@ -84,4 +116,3 @@ function HelpWindow(): React.JSX.Element {
 }
 
 export default HelpWindow
-

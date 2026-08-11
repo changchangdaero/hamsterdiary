@@ -6,6 +6,10 @@ import {
   type ReminderSettings
 } from '../../../shared/types/notifications'
 import type { GeminiKeyStatus } from '../../../shared/types/geminiKey'
+import {
+  DEFAULT_POMODORO_SETTINGS,
+  type PomodoroSettings
+} from '../../../shared/types/pomodoro'
 
 function SettingsWindow(): React.JSX.Element {
   const [settings, setSettings] = useState<ReminderSettings>(
@@ -15,6 +19,9 @@ function SettingsWindow(): React.JSX.Element {
   const [saving, setSaving] = useState(false)
   const [keyStatus, setKeyStatus] = useState<GeminiKeyStatus>({ configured: false })
   const [apiKey, setApiKey] = useState('')
+  const [pomodoro, setPomodoro] = useState<PomodoroSettings>(
+    DEFAULT_POMODORO_SETTINGS
+  )
 
   useEffect(() => {
     void window.desktopPetAPI
@@ -25,6 +32,10 @@ function SettingsWindow(): React.JSX.Element {
       .getGeminiKeyStatus()
       .then(setKeyStatus)
       .catch(() => setStatus('API 키 상태를 불러오지 못했습니다.'))
+    void window.desktopPetAPI
+      .getPomodoroSettings()
+      .then(setPomodoro)
+      .catch(() => setStatus('집중 타이머 설정을 불러오지 못했습니다.'))
   }, [])
 
   const saveApiKey = async (): Promise<void> => {
@@ -52,6 +63,22 @@ function SettingsWindow(): React.JSX.Element {
     }
   }
 
+  const savePomodoro = async (openTimer = false): Promise<void> => {
+    setSaving(true)
+    setStatus('')
+    try {
+      setPomodoro(
+        await window.desktopPetAPI.updatePomodoroSettings(pomodoro)
+      )
+      setStatus('집중 타이머 시간을 저장했어.')
+      if (openTimer) await window.desktopPetAPI.openPomodoro()
+    } catch {
+      setStatus('집중은 1~120분, 휴식은 1~60분으로 입력해줘.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const updateReminder = (
     kind: ReminderKind,
     patch: Partial<ReminderSettings[ReminderKind]>
@@ -66,8 +93,13 @@ function SettingsWindow(): React.JSX.Element {
     setSaving(true)
     setStatus('')
     try {
-      setSettings(await window.desktopPetAPI.updateReminderSettings(settings))
-      setStatus('리마인더 설정을 저장했습니다.')
+      const [nextReminders, nextPomodoro] = await Promise.all([
+        window.desktopPetAPI.updateReminderSettings(settings),
+        window.desktopPetAPI.updatePomodoroSettings(pomodoro)
+      ])
+      setSettings(nextReminders)
+      setPomodoro(nextPomodoro)
+      setStatus('설정을 저장했어.')
     } catch {
       setStatus('설정을 저장하지 못했습니다. 입력값을 확인해 주세요.')
     } finally {
@@ -274,6 +306,72 @@ function SettingsWindow(): React.JSX.Element {
             />
           </label>
           <span>까지</span>
+        </div>
+      </section>
+
+      <section className="reminder-setting-card pomodoro-settings-card">
+        <div className="setting-card-heading">
+          <div>
+            <h2>같이 집중 타이머</h2>
+            <p>집중과 휴식 시간을 원하는 길이로 맞출 수 있어.</p>
+          </div>
+        </div>
+        <div className="pomodoro-settings-row">
+          <label>
+            집중 시간(분)
+            <input
+              type="number"
+              min={1}
+              max={120}
+              value={pomodoro.focusMinutes}
+              onChange={(event) =>
+                setPomodoro((current) => ({
+                  ...current,
+                  focusMinutes: Number(event.target.value)
+                }))
+              }
+              onBlur={() => void savePomodoro()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') void savePomodoro()
+              }}
+            />
+          </label>
+          <label>
+            휴식 시간(분)
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={pomodoro.breakMinutes}
+              onChange={(event) =>
+                setPomodoro((current) => ({
+                  ...current,
+                  breakMinutes: Number(event.target.value)
+                }))
+              }
+              onBlur={() => void savePomodoro()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') void savePomodoro()
+              }}
+            />
+          </label>
+        </div>
+        <div className="pomodoro-settings-actions">
+          <button
+            type="button"
+            className="secondary"
+            disabled={saving}
+            onClick={() => void savePomodoro()}
+          >
+            시간 저장
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void savePomodoro(true)}
+          >
+            저장하고 타이머 열기
+          </button>
         </div>
       </section>
 

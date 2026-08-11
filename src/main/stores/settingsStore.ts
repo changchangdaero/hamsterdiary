@@ -2,6 +2,7 @@
 import Store from 'electron-store'
 import type { SettingsStoreData } from '../../shared/types/stores'
 import { DEFAULT_REMINDER_SETTINGS } from '../../shared/types/notifications'
+import { DEFAULT_POMODORO_SETTINGS } from '../../shared/types/pomodoro'
 
 export const settingsStore = new Store<SettingsStoreData>({
   name: 'settings',
@@ -9,6 +10,7 @@ export const settingsStore = new Store<SettingsStoreData>({
     dataVersion: 1,
     petEnabled: true,
     alwaysOnTop: false,
-    reminders: DEFAULT_REMINDER_SETTINGS
+    reminders: DEFAULT_REMINDER_SETTINGS,
+    pomodoro: DEFAULT_POMODORO_SETTINGS
   }
 })

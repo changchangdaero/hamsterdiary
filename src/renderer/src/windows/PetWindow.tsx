@@ -12,6 +12,7 @@ import type {
   PetScheduleInputPlacement,
   ResolvedPetMessage
 } from '../../../shared/types/pet'
+import type { PomodoroState } from '../../../shared/types/pomodoro'
 import PetSprite from '../components/PetSprite'
 import PetScheduleInput from '../components/PetScheduleInput'
 import SpeechBubble from '../components/SpeechBubble'
@@ -114,6 +115,7 @@ function PetWindow(): React.JSX.Element {
   const [isPointerActive, setIsPointerActive] = useState(false)
   const [isDraggingVisual, setIsDraggingVisual] = useState(false)
   const [completionPose, setCompletionPose] = useState(false)
+  const [pomodoroState, setPomodoroState] = useState<PomodoroState | null>(null)
   const [scheduleInputPlacement, setScheduleInputPlacement] =
     useState<PetScheduleInputPlacement | null>(null)
   const visualEmotion: PetEmotion = completionPose
@@ -122,6 +124,10 @@ function PetWindow(): React.JSX.Element {
       ? 'happy'
       : isDraggingVisual
         ? 'question'
+        : pomodoroState?.runState === 'running'
+          ? pomodoroState.mode === 'focus'
+            ? 'talking'
+            : 'sleep'
         : idlePose ?? emotion
 
   const pointerIdRef = useRef<number | null>(null)
@@ -351,6 +357,9 @@ function PetWindow(): React.JSX.Element {
           completionPoseTimerRef.current = null
         }, COMPLETION_POSE_DURATION)
       })
+    const unsubscribePomodoro =
+      window.desktopPetAPI.onPomodoroChanged(setPomodoroState)
+    void window.desktopPetAPI.getPomodoroState().then(setPomodoroState).catch(() => undefined)
 
     return () => {
       unsubscribeEmotion()
@@ -360,6 +369,7 @@ function PetWindow(): React.JSX.Element {
       unsubscribeScheduleInputOpened()
       unsubscribeScheduleInputClosed()
       unsubscribeSchedulesChanged()
+      unsubscribePomodoro()
       messageSequenceRef.current += 1
       clearMessageTimers()
       if (completionPoseTimerRef.current !== null) {
@@ -384,6 +394,7 @@ function PetWindow(): React.JSX.Element {
       scheduleInputPlacement === null &&
       !isPointerActive &&
       !completionPose
+      && pomodoroState?.runState !== 'running'
 
     if (!canPlayIdlePose) {
       clearIdlePoseTimer()
@@ -409,7 +420,14 @@ function PetWindow(): React.JSX.Element {
 
     scheduleNextPose()
     return clearIdlePoseTimer
-  }, [completionPose, emotion, isPointerActive, message, scheduleInputPlacement])
+  }, [
+    completionPose,
+    emotion,
+    isPointerActive,
+    message,
+    pomodoroState?.runState,
+    scheduleInputPlacement
+  ])
 
   useEffect(() => {
     let blinkDelayTimer: ReturnType<typeof setTimeout> | null = null
@@ -431,7 +449,7 @@ function PetWindow(): React.JSX.Element {
         }, delay)
       }
       scheduleBlink()
-    } else if (activeEmotion === 'talking' && isTyping) {
+    } else if (activeEmotion === 'talking') {
       setFrame('idle')
       frameInterval = setInterval(() => {
         setFrame((currentFrame) =>

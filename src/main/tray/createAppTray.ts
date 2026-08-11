@@ -11,6 +11,8 @@ interface CreateAppTrayOptions {
   showFoundation: () => void
   openSettings: () => void
   openHelp: () => void
+  openPomodoro: () => void
+  openTodos: () => void
   quitApp: () => void
 }
 
@@ -37,6 +39,8 @@ export const createAppTray = (
           label: '새 일정 추가',
           click: options.openNewSchedule
         },
+        { label: '뽀모도로 타이머', click: options.openPomodoro },
+        { label: '할 일 목록', click: options.openTodos },
         { type: 'separator' },
         {
           label: '펫 표시',

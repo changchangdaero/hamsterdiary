@@ -2875,3 +2875,401 @@ dd {
     grid-row: auto;
   }
 }
+
+/* Pomodoro keeps running in main while this pixel control window is closed. */
+.pomodoro-document,
+.pomodoro-document body,
+.pomodoro-document #root {
+  height: 100%;
+  margin: 0;
+  color: var(--pixel-ink);
+  background: var(--pixel-brown);
+  font-family: var(--pixel-font);
+}
+
+.pomodoro-document,
+.pomodoro-document body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.pomodoro-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  flex-direction: column;
+  padding: 18px 24px;
+  text-align: center;
+}
+
+.pomodoro-shell > header {
+  color: var(--pixel-cream);
+  text-shadow: 2px 2px 0 var(--pixel-ink);
+}
+
+.pomodoro-shell > header h1 {
+  margin: 3px 0 12px;
+  font-size: 1.35rem;
+}
+
+.pomodoro-card {
+  border: var(--pixel-border);
+  padding: 14px 22px;
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.pomodoro-mode {
+  display: inline-block;
+  border: 2px solid var(--pixel-ink);
+  padding: 5px 10px;
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+  font-weight: 700;
+}
+
+.pomodoro-shell.is-break .pomodoro-mode {
+  background: var(--pixel-green);
+}
+
+.pomodoro-pet {
+  display: block;
+  width: 138px;
+  height: 138px;
+  margin: 4px auto -4px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.pomodoro-time {
+  display: block;
+  color: var(--pixel-ink);
+  font-size: clamp(3.4rem, 15vw, 5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-shadow: 3px 3px 0 var(--pixel-sand);
+}
+
+.pomodoro-caption {
+  min-height: 24px;
+  margin: 10px 0;
+  color: #5b3a2e;
+}
+
+.pomodoro-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pomodoro-controls button,
+.pomodoro-shell .text-button {
+  border: var(--pixel-border);
+  border-radius: 0;
+  padding: 9px 14px;
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+  box-shadow: var(--pixel-shadow-small);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pomodoro-controls button.secondary {
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+}
+
+.pomodoro-controls button:active,
+.pomodoro-shell .text-button:active {
+  translate: 2px 2px;
+  box-shadow: none;
+}
+
+.pomodoro-error {
+  color: var(--pixel-red);
+}
+
+.pomodoro-shell > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pomodoro-shell .text-button {
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+}
+
+.pomodoro-settings-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.pomodoro-settings-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+/* Explicit schedule/todo routing above the pet chat input. */
+.pet-input-mode {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  gap: 5px;
+  margin: 0 26px 7px 0;
+  border: 0;
+  padding: 0;
+}
+
+.pet-input-mode label {
+  position: relative;
+  cursor: pointer;
+}
+
+.pet-input-mode input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.pet-input-mode label > span:first-of-type {
+  display: block;
+  border: 2px solid var(--pixel-ink);
+  padding: 3px 7px;
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.pet-input-mode input:checked + span {
+  color: var(--pixel-cream);
+  background: var(--pixel-green);
+  box-shadow: 2px 2px 0 var(--pixel-ink);
+}
+
+.pet-input-mode input:focus-visible + span {
+  outline: 2px solid var(--pixel-orange);
+  outline-offset: 2px;
+}
+
+.mode-tooltip {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: 0;
+  width: min(270px, calc(100vw - 34px));
+  border: 2px solid var(--pixel-ink);
+  padding: 7px 8px;
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  box-shadow: 3px 3px 0 var(--pixel-ink);
+  font-size: 0.65rem;
+  line-height: 1.4;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 60ms linear, transform 60ms linear !important;
+}
+
+.pet-input-mode label:last-child .mode-tooltip {
+  right: auto;
+  left: 0;
+}
+
+.pet-input-mode label:hover .mode-tooltip,
+.pet-input-mode label:focus-within .mode-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pet-inline-query {
+  position: relative;
+  z-index: 1;
+}
+
+/* Todo is stored and displayed separately from calendar schedules. */
+.todo-document,
+.todo-document body,
+.todo-document #root {
+  min-height: 100%;
+  margin: 0;
+  color: var(--pixel-ink);
+  background: var(--pixel-brown);
+  font-family: var(--pixel-font);
+}
+
+.todo-shell {
+  width: min(700px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 24px 28px 36px;
+}
+
+.todo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: var(--pixel-border);
+  padding: 14px 18px;
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+  box-shadow: var(--pixel-shadow);
+}
+
+.todo-header h1,
+.todo-header p {
+  margin: 0 0 6px;
+}
+
+.todo-header img {
+  width: 110px;
+  image-rendering: pixelated;
+}
+
+.todo-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.todo-tabs button,
+.todo-tabs span {
+  border: 2px solid var(--pixel-ink);
+  padding: 4px 8px;
+  color: var(--pixel-ink);
+  background: var(--pixel-cream);
+  font: inherit;
+  font-size: 0.72rem;
+}
+
+.todo-tabs button {
+  cursor: pointer;
+}
+
+.todo-tabs span[aria-current="page"] {
+  color: var(--pixel-cream);
+  background: var(--pixel-green);
+}
+
+.todo-panel {
+  margin-top: 18px;
+  border: var(--pixel-border);
+  padding: 18px;
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.todo-add-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.todo-add-form input {
+  min-width: 0;
+  border: var(--pixel-border);
+  border-radius: 0;
+  padding: 10px;
+  color: var(--pixel-cream);
+  background: #202226;
+  box-shadow: inset 2px 2px 0 #000;
+  caret-color: var(--pixel-cream);
+  font: inherit;
+}
+
+.todo-add-form button,
+.todo-list button,
+.todo-close {
+  border: var(--pixel-border);
+  border-radius: 0;
+  padding: 8px 12px;
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+  box-shadow: var(--pixel-shadow-small);
+  font: inherit;
+  cursor: pointer;
+}
+
+.todo-list {
+  display: grid;
+  gap: 9px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.todo-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid var(--pixel-ink);
+  padding: 10px 12px;
+  background: #fff8e4;
+}
+
+.todo-list label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.todo-list input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  accent-color: var(--pixel-green);
+}
+
+.todo-list label span {
+  overflow-wrap: anywhere;
+}
+
+.todo-list li.is-done {
+  background: #d9d39a;
+}
+
+.todo-list li.is-done label span {
+  color: #765646;
+  text-decoration: line-through 2px;
+}
+
+.todo-list button.danger {
+  background: var(--pixel-red);
+}
+
+.todo-empty {
+  margin-top: 18px;
+  border: 2px dashed var(--pixel-brown);
+  padding: 28px 16px;
+  color: #5b3a2e;
+  text-align: center;
+}
+
+.todo-error {
+  color: var(--pixel-red);
+}
+
+.todo-close {
+  display: block;
+  margin: 20px 0 0 auto;
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+}
+
+.todo-add-form button:active,
+.todo-list button:active,
+.todo-close:active {
+  translate: 2px 2px;
+  box-shadow: none;
+}
