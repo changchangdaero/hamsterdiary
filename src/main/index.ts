@@ -20,6 +20,7 @@ import { registerHelpIpc } from './ipc/registerHelpIpc'
 import { registerPomodoroIpc } from './ipc/registerPomodoroIpc'
 import { registerTodoIpc } from './ipc/registerTodoIpc'
 import { registerTodoConversationIpc } from './ipc/registerTodoConversationIpc'
+import { registerDiaryIpc } from './ipc/registerDiaryIpc'
 import { runtimeStore, schedulesStore, settingsStore } from './stores'
 import {
   createAppTray,
@@ -33,6 +34,7 @@ import { createOnboardingWindow } from './windows/createOnboardingWindow'
 import { createHelpWindow } from './windows/createHelpWindow'
 import { createPomodoroWindow } from './windows/createPomodoroWindow'
 import { createTodoWindow } from './windows/createTodoWindow'
+import { createDiaryWindow } from './windows/createDiaryWindow'
 import { getGeminiKeyStatus } from './services/geminiKeyService'
 import { PomodoroTimerService } from './services/pomodoroTimerService'
 import type { PomodoroEvent, PomodoroState } from '../shared/types/pomodoro'
@@ -58,6 +60,7 @@ let settingsWindow: BrowserWindow | null = null
 let helpWindow: BrowserWindow | null = null
 let pomodoroWindow: BrowserWindow | null = null
 let todoWindow: BrowserWindow | null = null
+let diaryWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
 let petIpcController: PetIpcController | null = null
 let notificationScheduler: NotificationScheduler | null = null
@@ -68,6 +71,11 @@ let pendingNewSchedule = false
 let pendingNewScheduleDate: string | undefined
 let petScheduleInputPlacement: PetScheduleInputPlacement | null = null
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
+
+const isFocusActive = (): boolean => {
+  const state = pomodoroTimer?.getState() ?? runtimeStore.get('pomodoro')
+  return state.mode === 'focus' && state.runState === 'running'
+}
 
 const isWindowAlive = (
   window: BrowserWindow | null
@@ -232,6 +240,33 @@ const showOnboardingWindow = (): void => {
   })
 }
 
+const showFirstWelcome = (): void => {
+  if (
+    settingsStore.get('onboardingWelcomeShown') ||
+    !getGeminiKeyStatus().configured
+  ) {
+    return
+  }
+
+  const window = showPet(true)
+  const deliver = (): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(IPC_CHANNELS.petMessageShown, {
+      text: '안녕! 드디어 만났네. 나는 네 책상 위에서 일정이랑 할 일을 챙기고, 집중할 때는 조용히 옆을 지켜주는 햄스터야. 하루가 끝나면 네 일기도 읽고 같이 기뻐하거나 토닥여줄게. 앞으로 네 하루를 곁에서 잘 모아볼게!',
+      finalEmotion: 'happy',
+      typingSpeed: 25,
+      visibleDuration: 12_000
+    })
+    settingsStore.set('onboardingWelcomeShown', true)
+  }
+
+  if (window.webContents.isLoadingMainFrame()) {
+    window.webContents.once('did-finish-load', deliver)
+  } else {
+    deliver()
+  }
+}
+
 const openSettingsWindow = (): void => {
   if (!isWindowAlive(settingsWindow)) {
     settingsWindow = createSettingsWindow()
@@ -296,6 +331,32 @@ const openTodoWindow = (): void => {
 
 const closeTodoWindow = (): void => {
   if (isWindowAlive(todoWindow)) todoWindow.close()
+}
+
+const openDiaryWindow = (date?: string): void => {
+  if (!isWindowAlive(diaryWindow)) {
+    diaryWindow = createDiaryWindow(date)
+    diaryWindow.once('closed', () => {
+      diaryWindow = null
+    })
+  } else if (date) {
+    diaryWindow.webContents.send(IPC_CHANNELS.diaryOpenDateRequested, date)
+  }
+  if (diaryWindow.isMinimized()) diaryWindow.restore()
+  diaryWindow.show()
+  diaryWindow.focus()
+}
+
+const closeDiaryWindow = (): void => {
+  if (isWindowAlive(diaryWindow)) diaryWindow.close()
+}
+
+const broadcastDiaryChanged = (dates: string[]): void => {
+  for (const window of [scheduleDiaryWindow, diaryWindow]) {
+    if (isWindowAlive(window)) {
+      window.webContents.send(IPC_CHANNELS.diaryChanged, dates)
+    }
+  }
 }
 
 const broadcastTodosChanged = (todos: Todo[]): void => {
@@ -381,37 +442,146 @@ const showPomodoroReaction = (event: PomodoroEvent): void => {
   }
 }
 
-const showPetNotification = (request: PetNotificationRequest): void => {
+const NOTIFICATION_MESSAGE_DELAY = 450
+const NOTIFICATION_TYPING_SPEED = 28
+const NOTIFICATION_VISIBLE_DURATION = 6_000
+const NOTIFICATION_EXIT_BUFFER = 200
+
+interface ActivePetNotification {
+  request: PetNotificationRequest
+  messageTimer: ReturnType<typeof setTimeout> | null
+  completionTimer: ReturnType<typeof setTimeout> | null
+}
+
+const pendingPetNotifications: PetNotificationRequest[] = []
+const shownOsNotifications = new WeakSet<PetNotificationRequest>()
+let activePetNotification: ActivePetNotification | null = null
+
+const estimateNotificationTypingDuration = (text: string): number =>
+  Array.from(text).reduce((duration, character) => {
+    if (/[.!?。！？]/u.test(character)) return duration + NOTIFICATION_TYPING_SPEED + 130
+    if (/[,，]/u.test(character)) return duration + NOTIFICATION_TYPING_SPEED + 65
+    if (character === '\n') return duration + NOTIFICATION_TYPING_SPEED + 80
+    return duration + NOTIFICATION_TYPING_SPEED
+  }, 0)
+
+const clearActiveNotificationTimers = (): void => {
+  if (activePetNotification?.messageTimer) {
+    clearTimeout(activePetNotification.messageTimer)
+  }
+  if (activePetNotification?.completionTimer) {
+    clearTimeout(activePetNotification.completionTimer)
+  }
+}
+
+const disposePetNotificationQueue = (): void => {
+  clearActiveNotificationTimers()
+  activePetNotification = null
+  pendingPetNotifications.length = 0
+}
+
+const discardRepeatingPetNotifications = (): void => {
+  for (let index = pendingPetNotifications.length - 1; index >= 0; index -= 1) {
+    if (pendingPetNotifications[index].kind !== 'schedule') {
+      pendingPetNotifications.splice(index, 1)
+    }
+  }
+  if (
+    activePetNotification &&
+    activePetNotification.request.kind !== 'schedule'
+  ) {
+    clearActiveNotificationTimers()
+    activePetNotification = null
+    if (isWindowAlive(petWindow)) {
+      petWindow.webContents.send(IPC_CHANNELS.petMessageHidden)
+    }
+    deliverNextPetNotification()
+  }
+}
+
+const deliverNextPetNotification = (): void => {
+  if (activePetNotification || pendingPetNotifications.length === 0) return
+
+  const request = pendingPetNotifications.shift()!
+  const active: ActivePetNotification = {
+    request,
+    messageTimer: null,
+    completionTimer: null
+  }
+  activePetNotification = active
   const window = showPet(true)
   const deliver = (): void => {
-    if (window.isDestroyed()) {
-      return
+    if (window.isDestroyed() || activePetNotification !== active) return
+
+    if (
+      request.showOsNotification &&
+      !shownOsNotifications.has(request) &&
+      Notification.isSupported()
+    ) {
+      new Notification({ title: request.title, body: request.message }).show()
+      shownOsNotifications.add(request)
     }
     window.webContents.send(IPC_CHANNELS.petEmotionChanged, 'happy')
-    const messageTimer = setTimeout(() => {
-      if (!window.isDestroyed()) {
+    active.messageTimer = setTimeout(() => {
+      if (!window.isDestroyed() && activePetNotification === active) {
         window.webContents.send(IPC_CHANNELS.petMessageShown, {
           text: request.message,
           finalEmotion: 'happy',
-          typingSpeed: 28,
-          visibleDuration: 6_000
+          typingSpeed: NOTIFICATION_TYPING_SPEED,
+          visibleDuration: NOTIFICATION_VISIBLE_DURATION
         })
       }
-    }, 450)
-    messageTimer.unref()
+      active.messageTimer = null
+    }, NOTIFICATION_MESSAGE_DELAY)
+    active.messageTimer.unref()
+
+    const totalDuration =
+      NOTIFICATION_MESSAGE_DELAY +
+      estimateNotificationTypingDuration(request.message) +
+      NOTIFICATION_VISIBLE_DURATION +
+      NOTIFICATION_EXIT_BUFFER
+    active.completionTimer = setTimeout(() => {
+      if (activePetNotification !== active) return
+      activePetNotification = null
+      deliverNextPetNotification()
+    }, totalDuration)
+    active.completionTimer.unref()
   }
   if (window.webContents.isLoadingMainFrame()) {
     window.webContents.once('did-finish-load', deliver)
   } else {
     deliver()
   }
+}
 
-  if (request.showOsNotification && Notification.isSupported()) {
-    new Notification({
-      title: request.title,
-      body: request.message
-    }).show()
+const showPetNotification = (request: PetNotificationRequest): void => {
+  if (request.kind !== 'schedule' && isFocusActive()) return
+
+  if (
+    request.kind === 'schedule' &&
+    activePetNotification &&
+    activePetNotification.request.kind !== 'schedule'
+  ) {
+    const interrupted = activePetNotification.request
+    clearActiveNotificationTimers()
+    activePetNotification = null
+    const firstQueuedRepeating = pendingPetNotifications.findIndex(
+      (item) => item.kind !== 'schedule'
+    )
+    if (firstQueuedRepeating >= 0) {
+      pendingPetNotifications.splice(firstQueuedRepeating, 0, interrupted)
+    } else {
+      pendingPetNotifications.push(interrupted)
+    }
   }
+
+  const insertionIndex =
+    request.kind === 'schedule'
+      ? pendingPetNotifications.findIndex((item) => item.kind !== 'schedule')
+      : -1
+  if (insertionIndex >= 0) pendingPetNotifications.splice(insertionIndex, 0, request)
+  else pendingPetNotifications.push(request)
+  deliverNextPetNotification()
 }
 
 const isSameLocalDate = (left: Date, right: Date): boolean =>
@@ -530,11 +700,17 @@ if (!hasSingleInstanceLock) {
     app.setAppUserModelId('com.example.desktoppetscheduler')
     registerFoundationIpc()
     notificationScheduler = new NotificationScheduler({
-      notify: showPetNotification
+      notify: showPetNotification,
+      isFocusActive
     })
     notificationScheduler.start()
     pomodoroTimer = new PomodoroTimerService({
-      stateChanged: broadcastPomodoroChanged,
+      stateChanged: (state) => {
+        if (state.mode === 'focus' && state.runState === 'running') {
+          discardRepeatingPetNotifications()
+        }
+        broadcastPomodoroChanged(state)
+      },
       phaseEvent: showPomodoroReaction
     })
     petIpcController = registerPetIpc({
@@ -550,6 +726,7 @@ if (!hasSingleInstanceLock) {
       openHelp: openHelpWindow,
       openPomodoro: openPomodoroWindow,
       openTodos: openTodoWindow,
+      openDiary: openDiaryWindow,
       quitApp
     })
     registerScheduleIpc({
@@ -558,7 +735,8 @@ if (!hasSingleInstanceLock) {
         petWindow,
         scheduleDiaryWindow,
         settingsWindow,
-        todoWindow
+        todoWindow,
+        diaryWindow
       ],
       getScheduleDiaryWindow: () => scheduleDiaryWindow,
       openScheduleDiary,
@@ -597,7 +775,10 @@ if (!hasSingleInstanceLock) {
       ],
       completeOnboarding: () => {
         if (isWindowAlive(mainWindow)) mainWindow.close()
-        if (settingsStore.get('petEnabled')) showPet()
+        if (settingsStore.get('petEnabled')) {
+          showPet()
+          showFirstWelcome()
+        }
       },
       openSettings: openSettingsWindow
     })
@@ -631,7 +812,8 @@ if (!hasSingleInstanceLock) {
         petWindow,
         scheduleDiaryWindow,
         settingsWindow,
-        todoWindow
+        todoWindow,
+        diaryWindow
       ],
       todosChanged: broadcastTodosChanged,
       todoCompleted: showTodoCompletionReaction,
@@ -642,6 +824,18 @@ if (!hasSingleInstanceLock) {
       getPetWindow: () => petWindow,
       todosChanged: broadcastTodosChanged,
       todoCompleted: showTodoCompletionReaction
+    })
+    registerDiaryIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        todoWindow,
+        diaryWindow
+      ],
+      openDiary: openDiaryWindow,
+      closeDiary: closeDiaryWindow,
+      diaryChanged: broadcastDiaryChanged
     })
 
     if (getGeminiKeyStatus().configured) {
@@ -660,6 +854,7 @@ if (!hasSingleInstanceLock) {
       openHelp: openHelpWindow,
       openPomodoro: openPomodoroWindow,
       openTodos: openTodoWindow,
+      openDiary: openDiaryWindow,
       quitApp
     })
 
@@ -702,6 +897,7 @@ if (!hasSingleInstanceLock) {
 
   app.on('before-quit', () => {
     isQuitting = true
+    disposePetNotificationQueue()
     notificationScheduler?.dispose()
     pomodoroTimer?.dispose()
   })

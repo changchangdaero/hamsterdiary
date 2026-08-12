@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { PetScheduleInputPlacement } from '../../../shared/types/pet'
 import type { ScheduleConversationTurn } from '../../../shared/types/scheduleConversation'
 import { SpeechBubbleFrame } from './SpeechBubble'
+import TypewriterText from './TypewriterText'
 
 interface PetScheduleInputProps {
   side: PetScheduleInputPlacement['side']
@@ -24,7 +25,6 @@ function PetScheduleInput({
   const [finished, setFinished] = useState(false)
   const [error, setError] = useState('')
   const [keyError, setKeyError] = useState(false)
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent): void => {
@@ -33,9 +33,21 @@ function PetScheduleInput({
     window.addEventListener('keydown', closeOnEscape)
     return () => {
       window.removeEventListener('keydown', closeOnEscape)
-      if (closeTimerRef.current !== null) clearTimeout(closeTimerRef.current)
     }
   }, [onClose])
+
+  const returnToConversation = (): void => {
+    setFinished(false)
+    setHistory([])
+    setText('')
+    setError('')
+    setKeyError(false)
+    setReply(
+      mode === 'schedule'
+        ? '어떤 일정을 알아볼까?'
+        : '어떤 할 일을 같이 해볼까?'
+    )
+  }
 
   const openManualForm = async (): Promise<void> => {
     try {
@@ -81,7 +93,6 @@ function PetScheduleInput({
       if (isFinished) {
         setFinished(true)
         setPending(false)
-        closeTimerRef.current = setTimeout(onClose, 5_000)
         return
       }
     } catch (requestError) {
@@ -107,8 +118,26 @@ function PetScheduleInput({
       interactive
     >
       <div data-pet-schedule-input aria-label="햄스터와 대화로 일정 잡기">
-        <p className="pet-inline-reply" aria-live="polite">
-          {pending ? '생각 중이야…' : reply}
+        <p
+          className={`pet-inline-reply${finished ? ' is-finished' : ''}`}
+          aria-live="polite"
+          role={finished ? 'button' : undefined}
+          tabIndex={finished ? 0 : undefined}
+          aria-label={finished ? '완료 메시지. 클릭하면 새 대화로 돌아갑니다.' : undefined}
+          onClick={finished ? returnToConversation : undefined}
+          onKeyDown={
+            finished
+              ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    returnToConversation()
+                  }
+                }
+              : undefined
+          }
+        >
+          <TypewriterText text={pending ? '잠깐만 기다려 봐…' : reply} />
+          {finished && <span className="pet-inline-continue">클릭해서 계속 대화하기</span>}
         </p>
         {!finished && (
           <>

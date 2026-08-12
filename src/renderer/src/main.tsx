@@ -20,6 +20,8 @@ document.documentElement.classList.add(
               ? 'pomodoro-document'
               : windowName === 'todos'
                 ? 'todo-document'
+                : windowName === 'diary'
+                  ? 'diary-document'
         : 'foundation-document'
 )
 

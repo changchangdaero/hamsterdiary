@@ -13,6 +13,7 @@ interface CreateAppTrayOptions {
   openHelp: () => void
   openPomodoro: () => void
   openTodos: () => void
+  openDiary: () => void
   quitApp: () => void
 }
 
@@ -41,6 +42,7 @@ export const createAppTray = (
         },
         { label: '뽀모도로 타이머', click: options.openPomodoro },
         { label: '할 일 목록', click: options.openTodos },
+        { label: '일기 쓰기', click: options.openDiary },
         { type: 'separator' },
         {
           label: '펫 표시',

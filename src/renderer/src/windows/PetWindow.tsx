@@ -16,6 +16,7 @@ import type { PomodoroState } from '../../../shared/types/pomodoro'
 import PetSprite from '../components/PetSprite'
 import PetScheduleInput from '../components/PetScheduleInput'
 import SpeechBubble from '../components/SpeechBubble'
+import { SpeechBubbleFrame } from '../components/SpeechBubble'
 import {
   preloadPetImages,
   type PetVisualFrame
@@ -36,6 +37,12 @@ const SLEEP_FRAMES: PetVisualFrame[] = [
   'sleep-z2',
   'sleep-z3'
 ]
+
+const formatRemainingTime = (seconds: number): string => {
+  const safeSeconds = Math.max(0, Math.ceil(seconds))
+  const minutes = Math.floor(safeSeconds / 60)
+  return `${String(minutes).padStart(2, '0')}:${String(safeSeconds % 60).padStart(2, '0')}`
+}
 
 const logPetStageRect = (state: 'opening' | 'opened' | 'closing' | 'closed'): void => {
   const rect = document.querySelector('.pet-stage')?.getBoundingClientRect()
@@ -149,6 +156,7 @@ function PetWindow(): React.JSX.Element {
   const messageVisibleRef = useRef(false)
   const idlePoseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const completionPoseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isFocusActiveRef = useRef(false)
 
   const clearTimer = (
     timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>
@@ -279,6 +287,13 @@ function PetWindow(): React.JSX.Element {
     finishTyping(activeMessage, graphemesRef.current)
   }
 
+  useEffect(() => {
+    if (!isTyping) return
+    const skipTypingOnKey = (): void => completeTyping()
+    window.addEventListener('keydown', skipTypingOnKey)
+    return () => window.removeEventListener('keydown', skipTypingOnKey)
+  }, [isTyping])
+
   const applyEmotion = (nextEmotion: PetEmotion): void => {
     messageSequenceRef.current += 1
     clearMessageTimers()
@@ -322,8 +337,11 @@ function PetWindow(): React.JSX.Element {
     preloadPetImages()
     const unsubscribeEmotion =
       window.desktopPetAPI.onPetEmotionChanged(applyEmotion)
-    const unsubscribeMessage =
-      window.desktopPetAPI.onPetMessageShown(startMessage)
+    const unsubscribeMessage = window.desktopPetAPI.onPetMessageShown(
+      (nextMessage) => {
+        if (!isFocusActiveRef.current) startMessage(nextMessage)
+      }
+    )
     const unsubscribeMessageHidden =
       window.desktopPetAPI.onPetMessageHidden(() => closeMessage(true))
     const unsubscribeWindowHidden = window.desktopPetAPI.onPetWindowHidden(
@@ -379,6 +397,17 @@ function PetWindow(): React.JSX.Element {
       window.desktopPetAPI.setPetMouseInteractive(false)
     }
   }, [])
+
+  const isFocusActive =
+    pomodoroState?.mode === 'focus' && pomodoroState.runState === 'running'
+
+  useEffect(() => {
+    isFocusActiveRef.current = isFocusActive
+    if (isFocusActive) {
+      closeMessage(false)
+      setIdlePose(null)
+    }
+  }, [isFocusActive])
 
   useEffect(() => {
     const clearIdlePoseTimer = (): void => {
@@ -527,10 +556,6 @@ function PetWindow(): React.JSX.Element {
       return
     }
 
-    if (scheduleInputPlacement) {
-      window.desktopPetAPI.closePetScheduleInput()
-    }
-
     pointerIdRef.current = event.pointerId
     setIsPointerActive(true)
     pointerStartRef.current = payload
@@ -608,6 +633,12 @@ function PetWindow(): React.JSX.Element {
   }
 
   const handleClick = (event: ReactMouseEvent<HTMLDivElement>): void => {
+    if (scheduleInputPlacement) {
+      event.preventDefault()
+      event.stopPropagation()
+      suppressClickRef.current = false
+      return
+    }
     if (suppressClickRef.current) {
       event.preventDefault()
       event.stopPropagation()
@@ -638,7 +669,14 @@ function PetWindow(): React.JSX.Element {
           : undefined
       }
     >
-      {message && !scheduleInputPlacement && (
+      {isFocusActive && !scheduleInputPlacement && (
+        <SpeechBubbleFrame className="focus-timer-bubble">
+          <span aria-live="off">
+            {formatRemainingTime(pomodoroState.remainingSeconds)}
+          </span>
+        </SpeechBubbleFrame>
+      )}
+      {!isFocusActive && message && !scheduleInputPlacement && (
         <SpeechBubble
           text={displayedText}
           isClosing={isBubbleClosing}

@@ -11,7 +11,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "build": "npm run typecheck && electron-vite build",
-    "build:win": "npm run build && electron-builder --win --x64"
+    "build:win": "npm run build && electron-builder --win portable --x64"
   },
   "dependencies": {
     "@electron-toolkit/preload": "3.0.2",
@@ -32,11 +32,12 @@
     "vite": "7.2.4"
   },
   "build": {
-    "appId": "com.example.desktoppetscheduler",
+    "appId": "com.desktop.pet.scheduler",
     "productName": "Desktop Pet Scheduler",
     "directories": {
       "output": "dist"
     },
+    "artifactName": "${productName}-${version}-portable-${arch}.${ext}",
     "files": [
       "out/**/*"
     ],
@@ -48,12 +49,6 @@
     ],
     "win": {
       "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
         {
           "target": "portable",
           "arch": [

@@ -7,6 +7,7 @@ import OnboardingWindow from './windows/OnboardingWindow'
 import HelpWindow from './windows/HelpWindow'
 import PomodoroWindow from './windows/PomodoroWindow'
 import TodoWindow from './windows/TodoWindow'
+import DiaryWindow from './windows/DiaryWindow'
 
 function App(): React.JSX.Element {
   const windowName = new URLSearchParams(window.location.search).get('window')
@@ -31,6 +32,9 @@ function App(): React.JSX.Element {
   }
   if (windowName === 'todos') {
     return <TodoWindow />
+  }
+  if (windowName === 'diary') {
+    return <DiaryWindow />
   }
   return <FoundationWindow />
 }

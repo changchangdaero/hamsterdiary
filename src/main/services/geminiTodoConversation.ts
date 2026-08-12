@@ -123,9 +123,35 @@ export const converseAboutTodo = async (
     { role: 'user', parts: [{ text: request.message }] }
   ]
   let mutationCompleted = false
+  const executedTools: string[] = []
+  const conversationText = [
+    ...request.history.map((turn) => turn.text),
+    request.message
+  ].join('\n')
+  const deleteRequested = /삭제|지워|지우기|제거|없애/u.test(conversationText)
+  const completeRequested = /완료|끝냈|다 했|체크/u.test(conversationText)
 
   try {
     for (let iteration = 0; iteration < MAX_ITERATIONS; iteration += 1) {
+      const lastTool = executedTools.at(-1)
+      const functionCallingConfig = mutationCompleted
+        ? { mode: 'NONE' }
+        : iteration === 0
+          ? {
+              mode: 'ANY',
+              allowedFunctionNames: ['add_todo', 'list_todos']
+            }
+          : lastTool === 'list_todos' && deleteRequested
+            ? { mode: 'VALIDATED', allowedFunctionNames: ['delete_todo'] }
+            : lastTool === 'list_todos' && completeRequested
+              ? { mode: 'VALIDATED', allowedFunctionNames: ['complete_todo'] }
+              : { mode: 'AUTO' }
+      console.log('[todo:conversation] iteration started', {
+        iteration: iteration + 1,
+        maxIterations: MAX_ITERATIONS,
+        executedTools,
+        functionCallingMode: functionCallingConfig.mode
+      })
       const response = await fetchGeminiQueued(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
         {
@@ -139,16 +165,7 @@ export const converseAboutTodo = async (
             systemInstruction: { parts: [{ text: instruction }] },
             contents,
             tools,
-            toolConfig: {
-              functionCallingConfig: mutationCompleted
-                ? { mode: 'NONE' }
-                : iteration === 0
-                  ? {
-                      mode: 'ANY',
-                      allowedFunctionNames: ['add_todo', 'list_todos']
-                    }
-                  : { mode: 'AUTO' }
-            }
+            toolConfig: { functionCallingConfig }
           })
         }
       )
@@ -182,10 +199,29 @@ export const converseAboutTodo = async (
         context.todosChanged(mutation.todos)
         mutationCompleted = true
         result = mutation
+        executedTools.push(call.name)
+        console.log('[todo:conversation] function executed', {
+          iteration: iteration + 1,
+          callCount: executedTools.length,
+          order: executedTools,
+          name: call.name,
+          todoId: String(args.todoId),
+          remainingCount: mutation.todos.length
+        })
+        return {
+          reply: `${mutation.changed?.text ?? '할 일'} 삭제했어!`,
+          completed: true
+        }
       } else {
         throw new Error(`지원하지 않는 할 일 함수입니다: ${call.name}`)
       }
-      console.log('[todo:conversation] function executed', { name: call.name })
+      executedTools.push(call.name)
+      console.log('[todo:conversation] function executed', {
+        iteration: iteration + 1,
+        callCount: executedTools.length,
+        order: executedTools,
+        name: call.name
+      })
       contents.push(content)
       contents.push({
         role: 'user',

@@ -17,6 +17,7 @@ const MAXIMUM_TIMER_DELAY = 2_147_000_000
 const MIDNIGHT_REFRESH_OFFSET = 1_000
 
 export interface PetNotificationRequest {
+  kind: 'schedule' | ReminderKind
   title: string
   message: string
   showOsNotification: boolean
@@ -25,6 +26,7 @@ export interface PetNotificationRequest {
 interface NotificationSchedulerOptions {
   notify: (request: PetNotificationRequest) => void
   now?: () => Date
+  isFocusActive?: () => boolean
 }
 
 export const isWithinQuietHours = (
@@ -40,6 +42,12 @@ export const isWithinQuietHours = (
     ? hour >= quiet.startHour && hour < quiet.endHour
     : hour >= quiet.startHour || hour < quiet.endHour
 }
+
+export const shouldSkipRepeatingReminder = (
+  date: Date,
+  settings: ReminderSettings,
+  isFocusActive: boolean
+): boolean => isFocusActive || isWithinQuietHours(date, settings)
 
 const nextMidnight = (date: Date): Date =>
   new Date(
@@ -58,6 +66,7 @@ const resolveSettings = (): ReminderSettings =>
 export class NotificationScheduler {
   private readonly notify: NotificationSchedulerOptions['notify']
   private readonly now: () => Date
+  private readonly isFocusActive: () => boolean
   private readonly scheduleTimers = new Map<string, NodeJS.Timeout>()
   private readonly repeatingTimers = new Map<ReminderKind, NodeJS.Timeout>()
   private readonly mutedUntil = new Map<ReminderKind, number>()
@@ -68,6 +77,7 @@ export class NotificationScheduler {
   constructor(options: NotificationSchedulerOptions) {
     this.notify = options.notify
     this.now = options.now ?? (() => new Date())
+    this.isFocusActive = options.isFocusActive ?? (() => false)
   }
 
   start(): void {
@@ -154,6 +164,7 @@ export class NotificationScheduler {
   private fireSchedule(schedule: Schedule, minutesBefore: number): void {
     this.scheduleTimers.delete(schedule.id)
     this.notify({
+      kind: 'schedule',
       title: '다가오는 일정',
       message: createScheduleReminderMessage(schedule, minutesBefore),
       showOsNotification: true
@@ -187,12 +198,17 @@ export class NotificationScheduler {
     const settings = resolveSettings()
     if (
       !settings[kind].enabled ||
-      isWithinQuietHours(this.now(), settings) ||
+      shouldSkipRepeatingReminder(
+        this.now(),
+        settings,
+        this.isFocusActive()
+      ) ||
       (this.mutedUntil.get(kind) ?? 0) > this.now().getTime()
     ) {
       return
     }
     this.notify({
+      kind,
       title: kind === 'water' ? '물 마시기' : '스트레칭',
       message: createRepeatingReminderMessage(kind),
       showOsNotification: settings[kind].showOsNotification

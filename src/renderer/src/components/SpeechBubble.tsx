@@ -51,7 +51,10 @@ function SpeechBubble({
           isTyping ? '메시지 전체 내용 바로 표시' : '햄스터가 전하는 메시지'
         }
       >
-        <span aria-live="polite">{text}</span>
+        <span aria-live="polite">
+          {text}
+          {isTyping && <span className="typewriter-cursor" aria-hidden="true">▍</span>}
+        </span>
       </button>
     </SpeechBubbleFrame>
   )
