@@ -6,7 +6,7 @@ node_modules/
 out/
 dist/
 release/
-n
+
 # Environment variables and secrets
 .env
 .env.*
@@ -27,3 +27,4 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
