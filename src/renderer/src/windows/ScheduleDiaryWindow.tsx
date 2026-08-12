@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Schedule } from '../../../shared/types/schedule'
 import type { Holiday } from '../../../shared/types/holiday'
 import ScheduleForm from '../components/ScheduleForm'
+import PixelConfirmDialog from '../components/PixelConfirmDialog'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 const VISIBLE_SCHEDULE_LIMIT = 2
@@ -62,25 +63,54 @@ function ScheduleDiaryWindow(): React.JSX.Element {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [holidays, setHolidays] = useState<Holiday[]>([])
+  const [diaryDates, setDiaryDates] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<EditingState>(null)
+  const [pendingDelete, setPendingDelete] = useState<Schedule | null>(null)
+  const [pendingNewDate, setPendingNewDate] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
   const dirtyRef = useRef(false)
   const editingRef = useRef<EditingState>(null)
+  const utilityMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     editingRef.current = editing
   }, [editing])
 
+  useEffect(() => {
+    if (!isUtilityMenuOpen) return
+    const closeOnOutsideClick = (event: PointerEvent): void => {
+      if (!utilityMenuRef.current?.contains(event.target as Node)) {
+        setIsUtilityMenuOpen(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setIsUtilityMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick)
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isUtilityMenuOpen])
+
+  useEffect(() => {
+    if (pendingDelete === null) return
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setPendingDelete(null)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [pendingDelete])
+
   const openNewForm = useCallback((requestedDate?: string): void => {
-    if (
-      editingRef.current !== null &&
-      dirtyRef.current &&
-      !window.confirm('작성 중인 내용을 버리고 새 일정을 작성할까요?')
-    ) {
+    const date = requestedDate ?? toDateKey(new Date())
+    if (editingRef.current !== null && dirtyRef.current) {
+      setPendingNewDate(date)
       return
     }
-    const date = requestedDate ?? toDateKey(new Date())
     const parsedDate = fromDateKey(date)
     dirtyRef.current = false
     setSelectedDate(date)
@@ -116,11 +146,19 @@ function ScheduleDiaryWindow(): React.JSX.Element {
         })
         setSchedules(items)
       })
+    void window.desktopPetAPI
+      .listDiaryDates()
+      .then((dates) => active && setDiaryDates(new Set(dates)))
+      .catch(() => undefined)
+    const unsubscribeDiaryChanged = window.desktopPetAPI.onDiaryChanged(
+      (dates) => setDiaryDates(new Set(dates))
+    )
     window.desktopPetAPI.notifyScheduleDiaryReady()
     return () => {
       active = false
       unsubscribe()
       unsubscribeSchedulesChanged()
+      unsubscribeDiaryChanged()
     }
   }, [openNewForm])
 
@@ -202,15 +240,9 @@ function ScheduleDiaryWindow(): React.JSX.Element {
   }
 
   const removeSchedule = async (schedule: Schedule): Promise<void> => {
-    if (
-      !window.confirm(
-        `“${schedule.title}” 일정을 삭제할까요?\n삭제한 일정은 복구할 수 없습니다.`
-      )
-    ) {
-      return
-    }
     try {
       setSchedules(await window.desktopPetAPI.deleteSchedule(schedule.id))
+      setPendingDelete(null)
     } catch {
       setError('일정을 삭제하지 못했습니다.')
     }
@@ -241,31 +273,67 @@ function ScheduleDiaryWindow(): React.JSX.Element {
           <p className="schedule-eyebrow">Desktop Pet Scheduler</p>
           <h1>일정 다이어리</h1>
         </div>
-        <div className="schedule-header-actions">
+        <div className="schedule-header-actions" ref={utilityMenuRef}>
           <button
             type="button"
             className="secondary"
             onClick={() => void window.desktopPetAPI.openTodos()}
           >
-            ✓ 할일
+            ✓ 해야 할 일
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void window.desktopPetAPI.openDiary()}
+          >
+            ✎ 일기 쓰기
           </button>
           <button
             type="button"
             className="secondary"
             onClick={() => void window.desktopPetAPI.openPomodoro()}
           >
-            ◷ 집중
+            ◷ 집중 타이머
           </button>
           <button
             type="button"
-            className="secondary"
-            onClick={() => void window.desktopPetAPI.openHelp()}
+            className="secondary schedule-utility-trigger"
+            aria-label="설정과 도움말"
+            aria-haspopup="menu"
+            aria-expanded={isUtilityMenuOpen}
+            onClick={() => setIsUtilityMenuOpen((open) => !open)}
           >
             ? 도움말
           </button>
           <button type="button" onClick={() => openNewForm(selectedDate)}>
             + 새 일정 추가
           </button>
+          <div className="schedule-utility-menu">
+            {isUtilityMenuOpen && (
+              <div className="schedule-utility-popover" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsUtilityMenuOpen(false)
+                    void window.desktopPetAPI.openSettings()
+                  }}
+                >
+                  설정
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsUtilityMenuOpen(false)
+                    void window.desktopPetAPI.openHelp()
+                  }}
+                >
+                  도움말
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -351,8 +419,13 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                     }
                   }}
                 >
-                  <span className="calendar-day-number">
-                    {day.date.getDate()}
+                  <span className="calendar-day-heading">
+                    <span className="calendar-day-number">
+                      {day.date.getDate()}
+                    </span>
+                    {diaryDates.has(day.key) && (
+                      <span className="calendar-diary-mark" title="작성한 일기 있음" aria-label="작성한 일기 있음" />
+                    )}
                   </span>
                   {dayHolidays.length > 0 && (
                     <span
@@ -471,7 +544,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                     <button
                       type="button"
                       className="danger"
-                      onClick={() => void removeSchedule(schedule)}
+                      onClick={() => setPendingDelete(schedule)}
                     >
                       삭제
                     </button>
@@ -481,6 +554,15 @@ function ScheduleDiaryWindow(): React.JSX.Element {
             </ul>
           )}
         </div>
+        {diaryDates.has(selectedDate) && (
+          <button
+            type="button"
+            className="detail-diary-button"
+            onClick={() => void window.desktopPetAPI.openDiary(selectedDate)}
+          >
+            그날 일기 보기
+          </button>
+        )}
         <button
           type="button"
           className="detail-add-button"
@@ -512,6 +594,60 @@ function ScheduleDiaryWindow(): React.JSX.Element {
             }}
           />
         </div>
+      )}
+      {pendingDelete !== null && (
+        <div
+          className="schedule-modal-backdrop schedule-delete-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPendingDelete(null)
+          }}
+        >
+          <section
+            className="schedule-delete-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="schedule-delete-title"
+            aria-describedby="schedule-delete-description"
+          >
+            <p className="pixel-kicker">DELETE SCHEDULE?</p>
+            <h2 id="schedule-delete-title">이 일정을 삭제할까?</h2>
+            <strong>“{pendingDelete.title}”</strong>
+            <p id="schedule-delete-description">
+              삭제한 일정은 다시 되돌릴 수 없어.
+            </p>
+            <div className="schedule-delete-actions">
+              <button type="button" onClick={() => setPendingDelete(null)}>
+                취소
+              </button>
+              <button
+                type="button"
+                className="danger"
+                onClick={() => void removeSchedule(pendingDelete)}
+              >
+                삭제하기
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {pendingNewDate !== null && (
+        <PixelConfirmDialog
+          title="새 일정을 작성할까?"
+          description="지금 작성 중인 저장하지 않은 내용은 사라져."
+          confirmLabel="새 일정 작성"
+          onCancel={() => setPendingNewDate(null)}
+          onConfirm={() => {
+            const date = pendingNewDate
+            const parsedDate = fromDateKey(date)
+            dirtyRef.current = false
+            setPendingNewDate(null)
+            setSelectedDate(date)
+            setIsDetailOpen(true)
+            setDisplayMonth(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1))
+            setEditing({ type: 'new', date })
+          }}
+        />
       )}
     </main>
   )

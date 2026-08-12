@@ -10,6 +10,7 @@ import {
   DEFAULT_POMODORO_SETTINGS,
   type PomodoroSettings
 } from '../../../shared/types/pomodoro'
+import PixelConfirmDialog from '../components/PixelConfirmDialog'
 
 function SettingsWindow(): React.JSX.Element {
   const [settings, setSettings] = useState<ReminderSettings>(
@@ -22,6 +23,7 @@ function SettingsWindow(): React.JSX.Element {
   const [pomodoro, setPomodoro] = useState<PomodoroSettings>(
     DEFAULT_POMODORO_SETTINGS
   )
+  const [confirmKeyDelete, setConfirmKeyDelete] = useState(false)
 
   useEffect(() => {
     void window.desktopPetAPI
@@ -53,11 +55,11 @@ function SettingsWindow(): React.JSX.Element {
   }
 
   const deleteApiKey = async (): Promise<void> => {
-    if (!window.confirm('저장된 Gemini API 키를 삭제할까?')) return
     try {
       setKeyStatus(await window.desktopPetAPI.deleteGeminiKey())
       setApiKey('')
       setStatus('API 키를 삭제했어. 다음 실행 때 온보딩이 다시 열려.')
+      setConfirmKeyDelete(false)
     } catch {
       setStatus('API 키를 삭제하지 못했어.')
     }
@@ -129,7 +131,7 @@ function SettingsWindow(): React.JSX.Element {
       <header>
         <p>Desktop Pet Scheduler</p>
         <h1>리마인더 설정</h1>
-        <span>햄스터가 말을 거는 간격과 조용한 시간을 정할 수 있어요.</span>
+        <span>API 키와 물·스트레칭 알림, 조용한 시간, 뽀모도로를 설정할 수 있어요.</span>
       </header>
 
       <section className="reminder-setting-card api-key-settings">
@@ -169,7 +171,7 @@ function SettingsWindow(): React.JSX.Element {
             {keyStatus.configured ? '키 변경' : '키 저장'}
           </button>
           {keyStatus.configured && (
-            <button type="button" className="danger" onClick={() => void deleteApiKey()}>
+            <button type="button" className="danger" onClick={() => setConfirmKeyDelete(true)}>
               키 삭제
             </button>
           )}
@@ -381,6 +383,16 @@ function SettingsWindow(): React.JSX.Element {
           {saving ? '저장 중…' : '설정 저장'}
         </button>
       </div>
+      {confirmKeyDelete && (
+        <PixelConfirmDialog
+          title="Gemini API 키를 삭제할까?"
+          description="삭제하면 다음 실행 때 API 키를 다시 설정해야 해."
+          confirmLabel="삭제하기"
+          danger
+          onCancel={() => setConfirmKeyDelete(false)}
+          onConfirm={() => void deleteApiKey()}
+        />
+      )}
     </main>
   )
 }

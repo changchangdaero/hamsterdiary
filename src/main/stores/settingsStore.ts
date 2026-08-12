@@ -10,6 +10,7 @@ export const settingsStore = new Store<SettingsStoreData>({
     dataVersion: 1,
     petEnabled: true,
     alwaysOnTop: false,
+    onboardingWelcomeShown: false,
     reminders: DEFAULT_REMINDER_SETTINGS,
     pomodoro: DEFAULT_POMODORO_SETTINGS
   }

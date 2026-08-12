@@ -86,7 +86,17 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>4. 알아두면 좋은 것</h2>
+        <h2>4. 일기도 나한테 들려줘</h2>
+        <ul>
+          <li>일기 탭에서 오늘 있었던 일을 적고 먼저 저장해 줘.</li>
+          <li><strong>나 오늘 이랬어</strong> 버튼을 누르면 내가 그날 일기를 천천히 읽어볼게.</li>
+          <li>기뻤던 일은 같이 좋아하고, 속상했던 일은 네 이야기를 짚어가며 따뜻하게 답해줄게.</li>
+          <li>내가 마지막으로 건넨 말은 그 날짜에 남아 있어서, 일기 탭을 다시 열어도 볼 수 있어.</li>
+        </ul>
+      </section>
+
+      <section className="help-card">
+        <h2>5. 알아두면 좋은 것</h2>
         <ul>
           <li>날짜는 “내일”, “이번 주 금요일”처럼 편하게 말해도 돼.</li>
           <li>여러 일정도 한 번에 말할 수 있어.</li>
@@ -95,7 +105,7 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>5. 그 외에</h2>
+        <h2>6. 그 외에</h2>
         <ul>
           <li>달력에서 전체 일정을 볼 수 있어.</li>
           <li>집중 타이머를 켜면 나도 옆에서 같이 집중하고 쉴게.</li>

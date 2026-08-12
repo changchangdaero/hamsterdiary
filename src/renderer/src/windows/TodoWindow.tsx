@@ -49,6 +49,9 @@ function TodoWindow(): React.JSX.Element {
               일정
             </button>
             <span aria-current="page">할일</span>
+            <button type="button" onClick={() => void window.desktopPetAPI.openDiary()}>
+              일기
+            </button>
           </nav>
         </div>
         <img src={PET_FRAME_IMAGES['thumbs-up']} alt="응원하는 햄스터" />

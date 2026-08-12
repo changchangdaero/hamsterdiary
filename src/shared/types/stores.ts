@@ -16,6 +16,7 @@ export interface SettingsStoreData {
   dataVersion: number
   petEnabled: boolean
   alwaysOnTop: boolean
+  onboardingWelcomeShown: boolean
   reminders: ReminderSettings
   pomodoro: PomodoroSettings
 }

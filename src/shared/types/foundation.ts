@@ -34,6 +34,7 @@ import type {
   TodoConversationRequest,
   TodoConversationResponse
 } from './todo'
+import type { DiaryComfortResponse, DiaryEntry, SaveDiaryPayload } from './diary'
 
 export interface RuntimeVersions {
   electron: string
@@ -121,6 +122,14 @@ export interface DesktopPetAPI {
   openTodos: () => Promise<void>
   closeTodos: () => Promise<void>
   onTodosChanged: (listener: (todos: Todo[]) => void) => () => void
+  getDiary: (date: string) => Promise<DiaryEntry | null>
+  listDiaryDates: () => Promise<string[]>
+  saveDiary: (payload: SaveDiaryPayload) => Promise<DiaryEntry | null>
+  comfortDiary: (date: string) => Promise<DiaryComfortResponse>
+  openDiary: (date?: string) => Promise<void>
+  closeDiary: () => Promise<void>
+  onDiaryChanged: (listener: (dates: string[]) => void) => () => void
+  onDiaryOpenDateRequested: (listener: (date: string) => void) => () => void
   getReminderSettings: () => Promise<ReminderSettings>
   updateReminderSettings: (
     settings: ReminderSettings
