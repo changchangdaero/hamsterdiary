@@ -261,7 +261,10 @@ const showFirstWelcome = (): void => {
   }
 
   if (window.webContents.isLoadingMainFrame()) {
-    window.webContents.once('did-finish-load', deliver)
+    window.webContents.once('did-finish-load', () => {
+      const welcomeTimer = setTimeout(deliver, 500)
+      welcomeTimer.unref()
+    })
   } else {
     deliver()
   }
@@ -697,7 +700,7 @@ if (!hasSingleInstanceLock) {
   })
 
   void app.whenReady().then(() => {
-    app.setAppUserModelId('com.example.desktoppetscheduler')
+    app.setAppUserModelId('com.desktop.pet.scheduler')
     registerFoundationIpc()
     notificationScheduler = new NotificationScheduler({
       notify: showPetNotification,

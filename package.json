@@ -38,6 +38,7 @@
       "output": "dist"
     },
     "artifactName": "${productName}-${version}-portable-${arch}.${ext}",
+    "compression": "normal",
     "files": [
       "out/**/*"
     ],
