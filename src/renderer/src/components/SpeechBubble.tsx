@@ -48,7 +48,7 @@ function SpeechBubble({
         }}
         onContextMenu={(event) => event.preventDefault()}
         aria-label={
-          isTyping ? '메시지 전체 내용 바로 표시' : '햄스터가 전하는 메시지'
+          isTyping ? '메시지 전체 내용 바로 표시' : '햄이가 전하는 메시지'
         }
       >
         <span aria-live="polite">

@@ -2,6 +2,7 @@
 import {
   app,
   BrowserWindow,
+  ipcMain,
   Notification,
   powerMonitor,
   screen
@@ -12,15 +13,28 @@ import {
   type PetIpcController
 } from './ipc/registerPetIpc'
 import { registerScheduleIpc } from './ipc/registerScheduleIpc'
-import { registerScheduleConversationIpc } from './ipc/registerScheduleConversationIpc'
 import { registerReminderIpc } from './ipc/registerReminderIpc'
 import { registerHolidayIpc } from './ipc/registerHolidayIpc'
-import { registerGeminiKeyIpc } from './ipc/registerGeminiKeyIpc'
+import { registerHamiChatIpc } from './ipc/registerHamiChatIpc'
+import { registerOnboardingIpc } from './ipc/registerOnboardingIpc'
 import { registerHelpIpc } from './ipc/registerHelpIpc'
 import { registerPomodoroIpc } from './ipc/registerPomodoroIpc'
 import { registerTodoIpc } from './ipc/registerTodoIpc'
-import { registerTodoConversationIpc } from './ipc/registerTodoConversationIpc'
 import { registerDiaryIpc } from './ipc/registerDiaryIpc'
+import { registerDailyPlanIpc } from './ipc/registerDailyPlanIpc'
+import { registerNotebookIpc } from './ipc/registerNotebookIpc'
+import { registerSettingsIpc } from './ipc/registerSettingsIpc'
+import {
+  readPetBehaviorSettings,
+  registerPetBehaviorIpc
+} from './ipc/registerPetBehaviorIpc'
+import type { SettingsSection } from '../shared/types/foundation'
+import { commentOnDailyPlan } from './services/dailyPlanComment'
+import {
+  startUserPresenceMonitor,
+  type UserPresenceMonitor
+} from './services/userPresenceMonitor'
+import type { NotebookViewRequest } from '../shared/types/notebook'
 import { runtimeStore, schedulesStore, settingsStore } from './stores'
 import {
   createAppTray,
@@ -33,9 +47,7 @@ import { createSettingsWindow } from './windows/createSettingsWindow'
 import { createOnboardingWindow } from './windows/createOnboardingWindow'
 import { createHelpWindow } from './windows/createHelpWindow'
 import { createPomodoroWindow } from './windows/createPomodoroWindow'
-import { createTodoWindow } from './windows/createTodoWindow'
-import { createDiaryWindow } from './windows/createDiaryWindow'
-import { getGeminiKeyStatus } from './services/geminiKeyService'
+import { createNotebookWindow } from './windows/createNotebookWindow'
 import { PomodoroTimerService } from './services/pomodoroTimerService'
 import type { PomodoroEvent, PomodoroState } from '../shared/types/pomodoro'
 import type { Todo } from '../shared/types/todo'
@@ -47,7 +59,11 @@ import {
   resolvePetPosition
 } from './windows/petPosition'
 import { IPC_CHANNELS } from '../shared/ipcChannels'
-import type { PetScheduleInputPlacement } from '../shared/types/pet'
+import type {
+  PetEmotion,
+  PetScheduleInputPlacement,
+  ResolvedPetMessage
+} from '../shared/types/pet'
 import {
   NotificationScheduler,
   type PetNotificationRequest
@@ -59,15 +75,17 @@ let scheduleDiaryWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
 let helpWindow: BrowserWindow | null = null
 let pomodoroWindow: BrowserWindow | null = null
-let todoWindow: BrowserWindow | null = null
-let diaryWindow: BrowserWindow | null = null
+let notebookWindow: BrowserWindow | null = null
 let appTray: AppTrayController | null = null
 let petIpcController: PetIpcController | null = null
 let notificationScheduler: NotificationScheduler | null = null
 let pomodoroTimer: PomodoroTimerService | null = null
+let userPresence: UserPresenceMonitor | null = null
 let isQuitting = false
 let isScheduleDiaryReady = false
 let pendingNewSchedule = false
+let isPetRendererReady = false
+let pendingFirstWelcome = false
 let pendingNewScheduleDate: string | undefined
 let petScheduleInputPlacement: PetScheduleInputPlacement | null = null
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
@@ -148,9 +166,11 @@ const ensurePetWindow = (): BrowserWindow => {
     position,
     shouldShow: () => settingsStore.get('petEnabled')
   })
+  isPetRendererReady = false
   petWindow.once('closed', () => {
     closePetScheduleInput()
     petWindow = null
+    isPetRendererReady = false
     refreshTrayMenu()
   })
 
@@ -242,39 +262,39 @@ const showOnboardingWindow = (): void => {
 
 const showFirstWelcome = (): void => {
   if (
-    settingsStore.get('onboardingWelcomeShown') ||
-    !getGeminiKeyStatus().configured
+    settingsStore.get('onboardingWelcomeShown')
   ) {
     return
   }
 
+  pendingFirstWelcome = true
   const window = showPet(true)
   const deliver = (): void => {
-    if (window.isDestroyed()) return
+    if (window.isDestroyed() || !pendingFirstWelcome) return
     window.webContents.send(IPC_CHANNELS.petMessageShown, {
-      text: '안녕! 드디어 만났네. 나는 네 책상 위에서 일정이랑 할 일을 챙기고, 집중할 때는 조용히 옆을 지켜주는 햄스터야. 하루가 끝나면 네 일기도 읽고 같이 기뻐하거나 토닥여줄게. 앞으로 네 하루를 곁에서 잘 모아볼게!',
+      text: '반가워! 난 햄이야. 나랑 이야기하고 싶으면 나를 두 번 클릭해줘. 일정부터 하루 기록까지 네 곁에서 함께 챙겨줄게!',
       finalEmotion: 'happy',
       typingSpeed: 25,
       visibleDuration: 12_000
     })
     settingsStore.set('onboardingWelcomeShown', true)
+    pendingFirstWelcome = false
   }
 
-  if (window.webContents.isLoadingMainFrame()) {
-    window.webContents.once('did-finish-load', deliver)
-  } else {
+  if (isPetRendererReady) {
     deliver()
   }
 }
 
-const openSettingsWindow = (): void => {
+const openSettingsWindow = (section: SettingsSection = 'conversation'): void => {
   if (!isWindowAlive(settingsWindow)) {
-    settingsWindow = createSettingsWindow()
+    settingsWindow = createSettingsWindow(section)
     settingsWindow.once('closed', () => {
       settingsWindow = null
     })
     return
   }
+  settingsWindow.webContents.send(IPC_CHANNELS.settingsSectionRequested, section)
   if (settingsWindow.isMinimized()) {
     settingsWindow.restore()
   }
@@ -316,45 +336,39 @@ const closePomodoroWindow = (): void => {
   if (isWindowAlive(pomodoroWindow)) pomodoroWindow.close()
 }
 
-const openTodoWindow = (): void => {
-  if (!isWindowAlive(todoWindow)) {
-    todoWindow = createTodoWindow()
-    todoWindow.once('closed', () => {
-      todoWindow = null
+const openNotebook = (request: NotebookViewRequest): void => {
+  if (!isWindowAlive(notebookWindow)) {
+    notebookWindow = createNotebookWindow(request)
+    notebookWindow.once('closed', () => {
+      notebookWindow = null
     })
     return
   }
-  if (todoWindow.isMinimized()) todoWindow.restore()
-  todoWindow.show()
-  todoWindow.focus()
+  notebookWindow.webContents.send(IPC_CHANNELS.notebookViewRequested, request)
+  if (notebookWindow.isMinimized()) notebookWindow.restore()
+  notebookWindow.show()
+  notebookWindow.focus()
 }
 
-const closeTodoWindow = (): void => {
-  if (isWindowAlive(todoWindow)) todoWindow.close()
-}
+const openTodoWindow = (): void => openNotebook({ view: 'todos' })
+const openDiaryWindow = (date?: string): void => openNotebook({ view: 'diary', date })
+const openDailyPlanWindow = (date?: string): void =>
+  openNotebook({ view: 'plan', date })
 
-const openDiaryWindow = (date?: string): void => {
-  if (!isWindowAlive(diaryWindow)) {
-    diaryWindow = createDiaryWindow(date)
-    diaryWindow.once('closed', () => {
-      diaryWindow = null
-    })
-  } else if (date) {
-    diaryWindow.webContents.send(IPC_CHANNELS.diaryOpenDateRequested, date)
-  }
-  if (diaryWindow.isMinimized()) diaryWindow.restore()
-  diaryWindow.show()
-  diaryWindow.focus()
-}
-
-const closeDiaryWindow = (): void => {
-  if (isWindowAlive(diaryWindow)) diaryWindow.close()
+const closeNotebook = (): void => {
+  if (isWindowAlive(notebookWindow)) notebookWindow.close()
 }
 
 const broadcastDiaryChanged = (dates: string[]): void => {
-  for (const window of [scheduleDiaryWindow, diaryWindow]) {
+  if (isWindowAlive(notebookWindow)) {
+    notebookWindow.webContents.send(IPC_CHANNELS.diaryChanged, dates)
+  }
+}
+
+const broadcastDailyPlanChanged = (dates: string[]): void => {
+  for (const window of [scheduleDiaryWindow, notebookWindow]) {
     if (isWindowAlive(window)) {
-      window.webContents.send(IPC_CHANNELS.diaryChanged, dates)
+      window.webContents.send(IPC_CHANNELS.dailyPlanChanged, dates)
     }
   }
 }
@@ -368,7 +382,7 @@ const broadcastTodosChanged = (todos: Todo[]): void => {
     settingsWindow,
     helpWindow,
     pomodoroWindow,
-    todoWindow
+    notebookWindow
   ]) {
     if (isWindowAlive(window)) {
       window.webContents.send(IPC_CHANNELS.todosChanged, todos)
@@ -392,6 +406,31 @@ const showTodoCompletionReaction = (allDone: boolean): void => {
   } else {
     deliver()
   }
+}
+
+// Replies the user explicitly asked for (e.g. "햄이에게 보여주기") speak even during focus mode.
+const showUserRequestedPetMessage = (
+  message: Omit<ResolvedPetMessage, 'userRequested'>
+): void => {
+  const window = showPet(true)
+  const deliver = (): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(IPC_CHANNELS.petMessageShown, {
+      ...message,
+      userRequested: true
+    } satisfies ResolvedPetMessage)
+  }
+  if (window.webContents.isLoadingMainFrame()) {
+    window.webContents.once('did-finish-load', deliver)
+  } else {
+    deliver()
+  }
+}
+
+const speakAsPet = (text: string, finalEmotion: PetEmotion): void => {
+  // Longer replies stay up longer so they can actually be read.
+  const visibleDuration = Math.min(30_000, Math.max(10_000, text.length * 120))
+  showUserRequestedPetMessage({ text, finalEmotion, typingSpeed: 25, visibleDuration })
 }
 
 const broadcastPomodoroChanged = (state: PomodoroState): void => {
@@ -692,12 +731,12 @@ if (!hasSingleInstanceLock) {
   app.quit()
 } else {
   app.on('second-instance', () => {
-    if (getGeminiKeyStatus().configured) showPet(true)
+    if (settingsStore.get('onboardingWelcomeShown')) showPet(true)
     else showOnboardingWindow()
   })
 
   void app.whenReady().then(() => {
-    app.setAppUserModelId('com.example.desktoppetscheduler')
+    app.setAppUserModelId('com.desktop.pet.scheduler')
     registerFoundationIpc()
     notificationScheduler = new NotificationScheduler({
       notify: showPetNotification,
@@ -722,12 +761,53 @@ if (!hasSingleInstanceLock) {
       openNewSchedule: () => openScheduleDiary(true),
       togglePetScheduleInput,
       closePetScheduleInput,
-      openSettings: openSettingsWindow,
+      openSettings: () => openSettingsWindow(),
       openHelp: openHelpWindow,
       openPomodoro: openPomodoroWindow,
       openTodos: openTodoWindow,
-      openDiary: openDiaryWindow,
+      openDiary: () => openDiaryWindow(),
+      openDailyPlan: () => openDailyPlanWindow(),
       quitApp
+    })
+    ipcMain.on(IPC_CHANNELS.petRendererReady, (event) => {
+      if (!isWindowAlive(petWindow) || event.sender !== petWindow.webContents) {
+        return
+      }
+      isPetRendererReady = true
+      if (pendingFirstWelcome) showFirstWelcome()
+      if (userPresence?.isAway()) {
+        petWindow.webContents.send(IPC_CHANNELS.petUserPresenceChanged, true)
+      }
+    })
+    userPresence = startUserPresenceMonitor(
+      readPetBehaviorSettings().sleepAfterMinutes * 60,
+      (away) => {
+        if (isWindowAlive(petWindow)) {
+          petWindow.webContents.send(IPC_CHANNELS.petUserPresenceChanged, away)
+        }
+      }
+    )
+    registerSettingsIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        settingsWindow,
+        pomodoroWindow,
+        notebookWindow
+      ],
+      openSettings: openSettingsWindow
+    })
+    registerPetBehaviorIpc({
+      getTrustedWindows: () => [mainWindow, petWindow, settingsWindow],
+      getPetWindow: () => petWindow,
+      showPet: () => showPet(),
+      behaviorChanged: (settings) => {
+        userPresence?.setAwaySeconds(settings.sleepAfterMinutes * 60)
+        if (isWindowAlive(petWindow)) {
+          petWindow.webContents.send(IPC_CHANNELS.petBehaviorSettingsChanged, settings)
+        }
+      }
     })
     registerScheduleIpc({
       getTrustedWindows: () => [
@@ -735,18 +815,14 @@ if (!hasSingleInstanceLock) {
         petWindow,
         scheduleDiaryWindow,
         settingsWindow,
-        todoWindow,
-        diaryWindow
+        notebookWindow
       ],
       getScheduleDiaryWindow: () => scheduleDiaryWindow,
       openScheduleDiary,
       scheduleDiaryReady: markScheduleDiaryReady,
       schedulesChanged: broadcastSchedulesChanged
     })
-    registerScheduleConversationIpc({
-      getPetWindow: () => petWindow,
-      schedulesChanged: broadcastSchedulesChanged
-    })
+    registerHamiChatIpc({ getPetWindow: () => petWindow })
     registerReminderIpc({
       getTrustedWindows: () => [
         mainWindow,
@@ -764,23 +840,15 @@ if (!hasSingleInstanceLock) {
         settingsWindow
       ]
     })
-    registerGeminiKeyIpc({
-      getTrustedWindows: () => [
-        mainWindow,
-        petWindow,
-        scheduleDiaryWindow,
-        settingsWindow,
-        helpWindow,
-        pomodoroWindow
-      ],
-      completeOnboarding: () => {
+    registerOnboardingIpc({
+      getWindow: () => mainWindow,
+      complete: () => {
         if (isWindowAlive(mainWindow)) mainWindow.close()
         if (settingsStore.get('petEnabled')) {
           showPet()
           showFirstWelcome()
         }
-      },
-      openSettings: openSettingsWindow
+      }
     })
     registerHelpIpc({
       getTrustedWindows: () => [
@@ -812,49 +880,67 @@ if (!hasSingleInstanceLock) {
         petWindow,
         scheduleDiaryWindow,
         settingsWindow,
-        todoWindow,
-        diaryWindow
+        notebookWindow
       ],
       todosChanged: broadcastTodosChanged,
       todoCompleted: showTodoCompletionReaction,
-      openTodos: openTodoWindow,
-      closeTodos: closeTodoWindow
-    })
-    registerTodoConversationIpc({
-      getPetWindow: () => petWindow,
-      todosChanged: broadcastTodosChanged,
-      todoCompleted: showTodoCompletionReaction
+      openTodos: openTodoWindow
     })
     registerDiaryIpc({
       getTrustedWindows: () => [
         mainWindow,
         petWindow,
         scheduleDiaryWindow,
-        todoWindow,
-        diaryWindow
+        notebookWindow
       ],
       openDiary: openDiaryWindow,
-      closeDiary: closeDiaryWindow,
       diaryChanged: broadcastDiaryChanged
     })
+    registerDailyPlanIpc({
+      getTrustedWindows: () => [
+        mainWindow,
+        petWindow,
+        scheduleDiaryWindow,
+        notebookWindow
+      ],
+      openDailyPlan: openDailyPlanWindow,
+      commentOnDailyPlan: (date) =>
+        commentOnDailyPlan(date, {
+          think: (text) =>
+            showUserRequestedPetMessage({
+              text,
+              finalEmotion: 'question',
+              typingSpeed: 25,
+              visibleDuration: 60_000
+            }),
+          speak: speakAsPet
+        }),
+      dailyPlanChanged: broadcastDailyPlanChanged
+    })
+    registerNotebookIpc({
+      getNotebookWindow: () => notebookWindow,
+      closeNotebook
+    })
 
-    if (getGeminiKeyStatus().configured) {
-      ensurePetWindow()
-    } else {
+    if (!settingsStore.get('onboardingWelcomeShown')) {
       showOnboardingWindow()
+    } else {
+      ensurePetWindow()
     }
     appTray = createAppTray({
       isPetVisible: () => isWindowAlive(petWindow) && petWindow.isVisible(),
       showPet: () => showPet(),
       hidePet,
+      talkToPet: togglePetScheduleInput,
       openScheduleDiary: () => openScheduleDiary(false),
       openNewSchedule: () => openScheduleDiary(true),
       showFoundation: showFoundationWindow,
-      openSettings: openSettingsWindow,
+      openSettings: () => openSettingsWindow(),
       openHelp: openHelpWindow,
       openPomodoro: openPomodoroWindow,
       openTodos: openTodoWindow,
-      openDiary: openDiaryWindow,
+      openDiary: () => openDiaryWindow(),
+      openDailyPlan: () => openDailyPlanWindow(),
       quitApp
     })
 
@@ -883,14 +969,14 @@ if (!hasSingleInstanceLock) {
       notificationScheduler?.rescheduleRepeating()
     })
 
-    if (getGeminiKeyStatus().configured && settingsStore.get('petEnabled')) {
+    if (settingsStore.get('onboardingWelcomeShown') && settingsStore.get('petEnabled')) {
       showPet()
       const todayScheduleTimer = setTimeout(announceTodaySchedules, 1_200)
       todayScheduleTimer.unref()
     }
 
     app.on('activate', () => {
-      if (getGeminiKeyStatus().configured) showPet()
+      if (settingsStore.get('onboardingWelcomeShown')) showPet()
       else showOnboardingWindow()
     })
   })
@@ -900,6 +986,7 @@ if (!hasSingleInstanceLock) {
     disposePetNotificationQueue()
     notificationScheduler?.dispose()
     pomodoroTimer?.dispose()
+    userPresence?.dispose()
   })
 
   app.on('window-all-closed', () => {

@@ -18,10 +18,8 @@ document.documentElement.classList.add(
             ? 'help-document'
             : windowName === 'pomodoro'
               ? 'pomodoro-document'
-              : windowName === 'todos'
-                ? 'todo-document'
-                : windowName === 'diary'
-                  ? 'diary-document'
+              : windowName === 'notebook'
+                ? 'notebook-document'
         : 'foundation-document'
 )
 

@@ -14,6 +14,7 @@ interface ScheduleFormProps {
   schedule: Schedule | null
   initialDate?: string
   onCancel: () => void
+  onDelete?: (schedule: Schedule) => void
   onSaved: (schedules: Schedule[]) => void
   onDirtyChange: (dirty: boolean) => void
 }
@@ -89,6 +90,7 @@ function ScheduleForm({
   schedule,
   initialDate,
   onCancel,
+  onDelete,
   onSaved,
   onDirtyChange
 }: ScheduleFormProps): React.JSX.Element {
@@ -142,11 +144,15 @@ function ScheduleForm({
       return
     }
 
-    const parsed = parseSchedule(text)
+    const selectedBaseDate = new Date(`${draft.date}T00:00:00`)
+    const parsed = parseSchedule(
+      text,
+      Number.isNaN(selectedBaseDate.getTime()) ? new Date() : selectedBaseDate
+    )
     setParsePreview(parsed)
     setDraft((current) => ({
       ...current,
-      date: parsed.date,
+      date: parsed.dateMatched ? parsed.date : current.date,
       time: parsed.time,
       title: parsed.title
     }))
@@ -336,6 +342,16 @@ function ScheduleForm({
         )}
 
         <div className="schedule-form-actions">
+          {schedule !== null && onDelete && (
+            <button
+              type="button"
+              className="danger schedule-form-delete"
+              disabled={saving}
+              onClick={() => onDelete(schedule)}
+            >
+              삭제
+            </button>
+          )}
           <button type="button" className="secondary" onClick={onCancel}>
             취소
           </button>

@@ -7,6 +7,7 @@ import type {
   StoredPomodoroState
 } from './pomodoro'
 import type { Todo } from './todo'
+import type { PetBehaviorSettings } from './pet'
 export interface PetPosition {
   x: number
   y: number
@@ -19,6 +20,7 @@ export interface SettingsStoreData {
   onboardingWelcomeShown: boolean
   reminders: ReminderSettings
   pomodoro: PomodoroSettings
+  petBehavior: PetBehaviorSettings
 }
 
 export interface SchedulesStoreData {
@@ -28,6 +30,7 @@ export interface SchedulesStoreData {
 
 export interface RuntimeStoreData {
   dataVersion: number
+  installationId: string | null
   phase0Counter: number
   petPosition: PetPosition | null
   petWindowLayoutVersion: number
@@ -42,11 +45,6 @@ export interface HolidayYearCache {
 export interface HolidaysStoreData {
   dataVersion: number
   years: Record<string, HolidayYearCache>
-}
-
-export interface CredentialsStoreData {
-  dataVersion: number
-  geminiApiKey: string | null
 }
 
 export interface TodosStoreData {

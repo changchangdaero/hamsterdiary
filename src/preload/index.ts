@@ -3,12 +3,15 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS } from '../shared/ipcChannels'
 import type { DesktopPetAPI } from '../shared/types/foundation'
 import type {
+  PetActionRequest,
+  PetBehaviorSettings,
   PetEmotion,
   PetScheduleInputPlacement,
   ResolvedPetMessage
 } from '../shared/types/pet'
 import type { PomodoroState } from '../shared/types/pomodoro'
 import type { Todo } from '../shared/types/todo'
+import type { NotebookViewRequest } from '../shared/types/notebook'
 
 const subscribe = <T>(
   channel: string,
@@ -47,8 +50,12 @@ const desktopPetAPI: DesktopPetAPI = {
   hidePetMessage: () => ipcRenderer.invoke(IPC_CHANNELS.hidePetMessage),
   showPetContextMenu: () =>
     ipcRenderer.send(IPC_CHANNELS.showPetContextMenu),
+  openPetScheduleInput: () =>
+    ipcRenderer.send(IPC_CHANNELS.openPetScheduleInput),
   closePetScheduleInput: () =>
     ipcRenderer.send(IPC_CHANNELS.closePetScheduleInput),
+  notifyPetRendererReady: () =>
+    ipcRenderer.send(IPC_CHANNELS.petRendererReady),
   onPetScheduleInputOpened: (listener) =>
     subscribe<PetScheduleInputPlacement>(
       IPC_CHANNELS.petScheduleInputOpened,
@@ -64,8 +71,22 @@ const desktopPetAPI: DesktopPetAPI = {
     subscribeWithoutPayload(IPC_CHANNELS.petMessageHidden, listener),
   onPetWindowHidden: (listener) =>
     subscribeWithoutPayload(IPC_CHANNELS.petWindowHidden, listener),
-  converseAboutSchedule: (request) =>
-    ipcRenderer.invoke(IPC_CHANNELS.converseAboutSchedule, request),
+  onPetUserPresenceChanged: (listener) =>
+    subscribe<boolean>(IPC_CHANNELS.petUserPresenceChanged, listener),
+  getPetBehaviorSettings: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.getPetBehaviorSettings),
+  updatePetBehaviorSettings: (settings) =>
+    ipcRenderer.invoke(IPC_CHANNELS.updatePetBehaviorSettings, settings),
+  onPetBehaviorSettingsChanged: (listener) =>
+    subscribe<PetBehaviorSettings>(IPC_CHANNELS.petBehaviorSettingsChanged, listener),
+  playPetAction: (actionId) =>
+    ipcRenderer.invoke(IPC_CHANNELS.playPetAction, actionId),
+  onPetActionRequested: (listener) =>
+    subscribe<PetActionRequest>(IPC_CHANNELS.petActionRequested, listener),
+  reportPetActionResult: (result) =>
+    ipcRenderer.send(IPC_CHANNELS.petActionResult, result),
+  converseWithHami: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.converseWithHami, request),
   listSchedules: () => ipcRenderer.invoke(IPC_CHANNELS.listSchedules),
   createSchedule: (draft) =>
     ipcRenderer.invoke(IPC_CHANNELS.createSchedule, draft),
@@ -90,17 +111,13 @@ const desktopPetAPI: DesktopPetAPI = {
     subscribe(IPC_CHANNELS.schedulesChanged, listener),
   listHolidays: (years) =>
     ipcRenderer.invoke(IPC_CHANNELS.listHolidays, years),
-  getGeminiKeyStatus: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.getGeminiKeyStatus),
-  saveGeminiKey: (key) =>
-    ipcRenderer.invoke(IPC_CHANNELS.saveGeminiKey, key),
-  deleteGeminiKey: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.deleteGeminiKey),
-  openGeminiKeyPage: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.openGeminiKeyPage),
   completeOnboarding: () =>
     ipcRenderer.invoke(IPC_CHANNELS.completeOnboarding),
-  openSettings: () => ipcRenderer.invoke(IPC_CHANNELS.openSettings),
+  openSettings: (section) => ipcRenderer.invoke(IPC_CHANNELS.openSettings, section),
+  onSettingsSectionRequested: (listener) =>
+    subscribe(IPC_CHANNELS.settingsSectionRequested, listener),
+  setSettingsDirty: (dirty) =>
+    ipcRenderer.send(IPC_CHANNELS.settingsDirtyChanged, dirty),
   openHelp: () => ipcRenderer.invoke(IPC_CHANNELS.openHelp),
   closeHelp: () => ipcRenderer.invoke(IPC_CHANNELS.closeHelp),
   getPomodoroState: () => ipcRenderer.invoke(IPC_CHANNELS.getPomodoroState),
@@ -120,22 +137,28 @@ const desktopPetAPI: DesktopPetAPI = {
   setTodoDone: (payload) =>
     ipcRenderer.invoke(IPC_CHANNELS.setTodoDone, payload),
   deleteTodo: (id) => ipcRenderer.invoke(IPC_CHANNELS.deleteTodo, id),
-  converseAboutTodo: (request) =>
-    ipcRenderer.invoke(IPC_CHANNELS.converseAboutTodo, request),
   openTodos: () => ipcRenderer.invoke(IPC_CHANNELS.openTodos),
-  closeTodos: () => ipcRenderer.invoke(IPC_CHANNELS.closeTodos),
   onTodosChanged: (listener) =>
     subscribe<Todo[]>(IPC_CHANNELS.todosChanged, listener),
   getDiary: (date) => ipcRenderer.invoke(IPC_CHANNELS.getDiary, date),
   listDiaryDates: () => ipcRenderer.invoke(IPC_CHANNELS.listDiaryDates),
   saveDiary: (payload) => ipcRenderer.invoke(IPC_CHANNELS.saveDiary, payload),
-  comfortDiary: (date) => ipcRenderer.invoke(IPC_CHANNELS.comfortDiary, date),
   openDiary: (date) => ipcRenderer.invoke(IPC_CHANNELS.openDiary, date),
-  closeDiary: () => ipcRenderer.invoke(IPC_CHANNELS.closeDiary),
   onDiaryChanged: (listener) =>
     subscribe<string[]>(IPC_CHANNELS.diaryChanged, listener),
-  onDiaryOpenDateRequested: (listener) =>
-    subscribe<string>(IPC_CHANNELS.diaryOpenDateRequested, listener),
+  getDailyPlan: (date) => ipcRenderer.invoke(IPC_CHANNELS.getDailyPlan, date),
+  listDailyPlanDates: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.listDailyPlanDates),
+  saveDailyPlan: (payload) =>
+    ipcRenderer.invoke(IPC_CHANNELS.saveDailyPlan, payload),
+  openDailyPlan: (date) => ipcRenderer.invoke(IPC_CHANNELS.openDailyPlan, date),
+  commentOnDailyPlan: (date) =>
+    ipcRenderer.invoke(IPC_CHANNELS.commentOnDailyPlan, date),
+  onDailyPlanChanged: (listener) =>
+    subscribe<string[]>(IPC_CHANNELS.dailyPlanChanged, listener),
+  closeNotebook: () => ipcRenderer.invoke(IPC_CHANNELS.closeNotebook),
+  onNotebookViewRequested: (listener) =>
+    subscribe<NotebookViewRequest>(IPC_CHANNELS.notebookViewRequested, listener),
   getReminderSettings: () =>
     ipcRenderer.invoke(IPC_CHANNELS.getReminderSettings),
   updateReminderSettings: (settings) =>

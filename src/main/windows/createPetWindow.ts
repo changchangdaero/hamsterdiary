@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { BrowserWindow } from 'electron'
 import type { PetPosition } from '../../shared/types/stores'
 import { PET_WINDOW_SIZE } from './petPosition'
+import { getWindowIconPath } from '../paths'
 
 interface CreatePetWindowOptions {
   position: PetPosition
@@ -14,6 +15,7 @@ export const createPetWindow = ({
   shouldShow
 }: CreatePetWindowOptions): BrowserWindow => {
   const petWindow = new BrowserWindow({
+    icon: getWindowIconPath(),
     ...PET_WINDOW_SIZE,
     x: position.x,
     y: position.y,

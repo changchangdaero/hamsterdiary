@@ -64,7 +64,7 @@
 }
 
 .pet-window {
-  --pet-sprite-height: 200px;
+  --pet-sprite-height: 150px;
 
   position: relative;
   width: 100%;
@@ -77,8 +77,8 @@
   position: absolute;
   left: var(--pet-stage-center-x, 50%);
   bottom: 0;
-  width: 220px;
-  height: 260px;
+  width: 170px;
+  height: 205px;
   transform: translateX(-50%);
   background: transparent;
 }
@@ -87,8 +87,8 @@
   position: absolute;
   left: 10px;
   bottom: 0;
-  width: 200px;
-  height: 200px;
+  width: 150px;
+  height: 150px;
   cursor: grab;
   touch-action: none;
 }
@@ -98,6 +98,7 @@
 }
 
 .pet-motion-wrapper {
+  position: relative;
   width: 100%;
   height: 100%;
   transform-origin: center bottom;
@@ -113,12 +114,9 @@
   -webkit-user-drag: none;
 }
 
-.emotion-idle {
-  animation: pet-idle-breathe 2.9s ease-in-out infinite;
-}
-
+/* A slow breath while talking, so the fast mouth flap never turns into a jitter. */
 .emotion-talking {
-  animation: pet-talking-motion 330ms ease-in-out infinite;
+  animation: pet-talking-breath 1200ms ease-in-out infinite;
 }
 
 .emotion-question {
@@ -142,7 +140,27 @@
 }
 
 .pet-window.is-chatting .emotion-happy {
-  animation-iteration-count: infinite;
+  animation: pet-chat-bounce 3.6s linear infinite;
+}
+
+.pet-wake-bubble {
+  position: absolute;
+  z-index: 1;
+  top: calc(49% - 2px);
+  left: calc(42.5% - 5px);
+  width: 8px;
+  height: 8px;
+  border: 2px solid #28333a;
+  border-radius: 50%;
+  background: #dff8ff;
+  box-shadow: inset 2px 2px 0 #fff;
+  pointer-events: none;
+  transform-origin: center center;
+  animation: pet-wake-bubble-grow 1s steps(4, end) both;
+}
+
+.wake-startle {
+  animation: pet-wake-startle 500ms steps(2, end) both;
 }
 
 .speech-bubble {
@@ -225,25 +243,14 @@
   font-variant-numeric: tabular-nums;
 }
 
-@keyframes pet-idle-breathe {
-  0%,
-  100% {
-    transform: translateY(0) scaleX(1) scaleY(1);
-  }
-
-  50% {
-    transform: translateY(-2px) scaleX(1.012) scaleY(0.988);
-  }
-}
-
-@keyframes pet-talking-motion {
+@keyframes pet-talking-breath {
   0%,
   100% {
     transform: translateY(0);
   }
 
   50% {
-    transform: translateY(-1.5px);
+    transform: translateY(-1px);
   }
 }
 
@@ -477,6 +484,81 @@ dd {
   color: #3659b7;
 }
 
+@keyframes pet-chat-bounce {
+  0%,
+  10%,
+  20%,
+  100% {
+    transform: translateY(0);
+  }
+
+  5%,
+  15% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes pet-wake-bubble-grow {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.15);
+  }
+
+  65% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+
+  82% {
+    opacity: 1;
+    transform: translate(0, -1px) scale(1.25);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) scale(1.45);
+  }
+}
+
+@keyframes pet-wake-startle {
+  0% {
+    transform: translateY(0) rotate(0);
+  }
+
+  35% {
+    transform: translateY(-3px) rotate(-1deg);
+  }
+
+  70% {
+    transform: translateY(-1px) rotate(1deg);
+  }
+
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+}
+
+/* Idle actions (see petIdleBehaviors.ts). Motions loop on a fixed beat so timing stays even. */
+/* One bob per dance frame (400ms each). */
+.action-toca-dance {
+  animation: pet-toca-bob 400ms ease-in-out infinite;
+}
+
+@keyframes pet-toca-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+
+  45% {
+    transform: translateY(-4px) scale(0.99, 1.01);
+  }
+
+  70% {
+    transform: translateY(0) scale(1.02, 0.98);
+  }
+}
+
 /* 일정 다이어리는 일반 불투명 창 안에서 독립적인 반응형 레이아웃을 사용합니다. */
 .schedule-document {
   color: #3f2b22;
@@ -547,19 +629,6 @@ dd {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.schedule-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 22px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #dfd2c2;
-}
-
-.schedule-filters button {
-  color: #75523d;
-  background: transparent;
 }
 
 .pet-inline-input {
@@ -640,8 +709,7 @@ dd {
   cursor: pointer;
 }
 
-.pet-inline-input button.confirm,
-.pet-inline-preview > button {
+.pet-inline-input button.confirm {
   border-color: #c8956a;
   color: #21150d;
   background: #c8956a;
@@ -687,29 +755,10 @@ dd {
   font-weight: 700;
 }
 
-.pet-inline-preview {
-  display: grid;
-  gap: 7px;
-  margin-top: 9px;
-  padding-top: 9px;
-  border-top: 1px solid #49382a;
-}
-
-.pet-inline-preview > div {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 7px;
-}
-
-.pet-inline-preview p,
 .pet-inline-error {
   margin: 0;
   color: #d8b98f;
   font-size: 11px;
-}
-
-.pet-inline-preview > button {
-  justify-self: end;
 }
 
 .pet-inline-error {
@@ -844,11 +893,6 @@ dd {
   }
 }
 
-.schedule-filters button.active {
-  color: #fff;
-  background: #875c3b;
-}
-
 .schedule-error,
 .form-error,
 .field-error {
@@ -859,20 +903,6 @@ dd {
   border-radius: 8px;
   padding: 10px 13px;
   background: #fdeae5;
-}
-
-.schedule-empty {
-  display: grid;
-  gap: 7px;
-  min-height: 240px;
-  place-content: center;
-  color: #8a6f5f;
-  text-align: center;
-}
-
-.schedule-empty strong {
-  color: #5c4032;
-  font-size: 1.12rem;
 }
 
 .schedule-list {
@@ -913,19 +943,8 @@ dd {
   accent-color: #875c3b;
 }
 
-.schedule-content h2 {
-  margin: 0 0 6px;
-  font-size: 1.05rem;
-}
-
-.schedule-meta,
 .schedule-memo {
   margin: 0;
-}
-
-.schedule-meta {
-  color: #796251;
-  font-size: 0.9rem;
 }
 
 .schedule-memo {
@@ -1033,6 +1052,12 @@ dd {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 22px;
+}
+
+.schedule-form-actions .schedule-form-delete {
+  margin-right: auto;
+  color: #fff;
+  background: #b8473d;
 }
 
 .schedule-document button.secondary {
@@ -1840,6 +1865,22 @@ dd {
 .reminder-settings > header span,
 .reminder-setting-card p {
   color: #a8abb2;
+}
+
+.settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.settings-tabs button.active {
+  color: #21150d;
+  background: #f0c674;
+}
+
+.reminder-setting-card[hidden] {
+  display: none !important;
 }
 
 .reminder-setting-card {
@@ -3168,6 +3209,29 @@ dd {
   padding: 0;
 }
 
+.pet-input-mode > button {
+  border: 2px solid var(--pixel-ink);
+  padding: 4px 8px;
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+  box-shadow: 2px 2px 0 var(--pixel-ink);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.pet-input-mode > button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.pet-inline-privacy {
+  margin: 6px 26px 0 0;
+  color: #705b45;
+  font-size: 0.62rem;
+  line-height: 1.35;
+}
+
 .pet-input-mode label {
   position: relative;
   cursor: pointer;
@@ -3261,23 +3325,6 @@ dd {
 }
 
 /* Todo is stored and displayed separately from calendar schedules. */
-.todo-document,
-.todo-document body,
-.todo-document #root {
-  min-height: 100%;
-  margin: 0;
-  color: var(--pixel-ink);
-  background: var(--pixel-brown);
-  font-family: var(--pixel-font);
-}
-
-.todo-shell {
-  width: min(700px, 100%);
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 24px 28px 36px;
-}
-
 .todo-header {
   display: flex;
   align-items: center;
@@ -3439,23 +3486,6 @@ dd {
 }
 
 /* One dated entry per key, presented as a calm pixel-paper workspace. */
-.diary-document,
-.diary-document body,
-.diary-document #root {
-  min-height: 100%;
-  margin: 0;
-  color: var(--pixel-ink);
-  background: var(--pixel-brown);
-  font-family: var(--pixel-font);
-}
-
-.diary-shell {
-  width: min(760px, 100%);
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 24px 28px 36px;
-}
-
 .diary-header {
   display: flex;
   align-items: center;
@@ -3623,28 +3653,28 @@ dd {
   cursor: pointer;
 }
 
-.diary-document,
+.notebook-document,
 .help-document,
 .diary-panel textarea {
   scrollbar-color: var(--pixel-brown) var(--pixel-sand);
   scrollbar-width: thin;
 }
 
-.diary-document::-webkit-scrollbar,
+.notebook-document::-webkit-scrollbar,
 .help-document::-webkit-scrollbar,
 .diary-panel textarea::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 
-.diary-document::-webkit-scrollbar-track,
+.notebook-document::-webkit-scrollbar-track,
 .help-document::-webkit-scrollbar-track,
 .diary-panel textarea::-webkit-scrollbar-track {
   border-left: 2px solid var(--pixel-ink);
   background: var(--pixel-sand);
 }
 
-.diary-document::-webkit-scrollbar-thumb,
+.notebook-document::-webkit-scrollbar-thumb,
 .help-document::-webkit-scrollbar-thumb,
 .diary-panel textarea::-webkit-scrollbar-thumb {
   border: 2px solid var(--pixel-ink);
@@ -3652,7 +3682,7 @@ dd {
   background: var(--pixel-brown);
 }
 
-.diary-document::-webkit-scrollbar-button,
+.notebook-document::-webkit-scrollbar-button,
 .help-document::-webkit-scrollbar-button,
 .diary-panel textarea::-webkit-scrollbar-button {
   display: none;
@@ -3732,3 +3762,437 @@ dd {
 .pixel-confirm-actions button.confirm { color: var(--pixel-cream); background: var(--pixel-green); }
 .pixel-confirm-actions button.danger { color: var(--pixel-cream); background: var(--pixel-red); }
 .pixel-confirm-actions button:active { translate: 2px 2px; box-shadow: none !important; }
+
+/* Daily plan: a mini calendar beside one roomy free-form page per date. */
+.plan-body {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 18px;
+  min-height: 0;
+  margin-top: 18px;
+}
+
+.plan-calendar,
+.plan-page {
+  border: var(--pixel-border);
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.plan-calendar {
+  align-self: start;
+  padding: 16px;
+}
+
+.plan-calendar-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.plan-calendar-toolbar h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.plan-calendar-toolbar button,
+.plan-today {
+  border: var(--pixel-border);
+  border-radius: 0;
+  padding: 6px 10px;
+  color: var(--pixel-ink);
+  background: var(--pixel-sand);
+  box-shadow: var(--pixel-shadow-small);
+  font: inherit;
+  cursor: pointer;
+}
+
+.plan-weekdays,
+.plan-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.plan-weekdays {
+  margin-bottom: 4px;
+  color: var(--pixel-brown);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.plan-weekdays span:first-child { color: var(--pixel-red); }
+.plan-weekdays span:last-child { color: #334b7d; }
+
+.plan-day {
+  position: relative;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 0;
+  padding: 0;
+  color: var(--pixel-ink);
+  background: #fff8e4;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.plan-day:hover { border-color: var(--pixel-brown); }
+.plan-day.is-sunday { color: var(--pixel-red); }
+.plan-day.is-saturday { color: #334b7d; }
+.plan-day.is-outside { opacity: 0.4; }
+.plan-day.is-today { border-color: var(--pixel-orange); }
+
+.plan-day.is-selected {
+  border-color: var(--pixel-ink);
+  color: var(--pixel-cream);
+  background: var(--pixel-green);
+  box-shadow: var(--pixel-shadow-small);
+}
+
+.plan-day-mark {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--pixel-ink);
+  background: var(--pixel-orange);
+  transform: translateX(-50%);
+}
+
+.plan-today {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.plan-today:disabled { cursor: default; opacity: 0.5; }
+
+.plan-calendar-toolbar button:active,
+.plan-today:active:not(:disabled),
+.plan-comment-button:active:not(:disabled),
+.notebook-shell .todo-close:active {
+  translate: 2px 2px;
+  box-shadow: none;
+}
+
+.plan-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 18px 20px 14px;
+}
+
+.plan-page h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.plan-page textarea {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  resize: none;
+  border: var(--pixel-border);
+  border-radius: 0;
+  padding: 18px 20px;
+  color: var(--pixel-ink);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(1.75em - 1px),
+      rgb(143 86 59 / 18%) calc(1.75em - 1px),
+      rgb(143 86 59 / 18%) 1.75em
+    )
+    local,
+    #fffaf0;
+  background-position: 0 18px;
+  box-shadow: inset 3px 3px 0 var(--pixel-sand);
+  font: 400 16px/1.75 var(--pixel-font);
+  caret-color: var(--pixel-orange);
+}
+
+.plan-page textarea:focus {
+  outline: 2px solid var(--pixel-orange);
+  outline-offset: 2px;
+}
+
+.plan-status {
+  margin-top: 10px;
+  color: var(--pixel-green);
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+/* Notebook: todo, diary and plan tabs share one window and swap in place. */
+.notebook-document,
+.notebook-document body,
+.notebook-document #root {
+  height: 100%;
+  margin: 0;
+  color: var(--pixel-ink);
+  background: var(--pixel-brown);
+  font-family: var(--pixel-font);
+}
+
+.notebook-shell {
+  display: flex;
+  flex-direction: column;
+  width: min(1240px, 100%);
+  height: 100vh;
+  margin: 0 auto;
+  padding: 18px 24px 16px;
+}
+
+.notebook-header {
+  flex: 0 0 auto;
+  padding: 10px 18px;
+}
+
+.notebook-header img {
+  width: 88px;
+}
+
+.notebook-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 16px;
+  padding: 0 6px 6px 0;
+  overflow: auto;
+}
+
+.notebook-shell .todo-panel,
+.notebook-shell .diary-panel {
+  margin-top: 0;
+}
+
+.notebook-shell.is-diary .diary-panel textarea {
+  min-height: max(330px, calc(100vh - 470px));
+}
+
+.notebook-shell .todo-close {
+  flex: 0 0 auto;
+  margin-top: 12px;
+}
+
+.todo-summary {
+  margin: 0 0 12px;
+  color: var(--pixel-brown);
+}
+
+.notebook-shell.is-plan .notebook-body {
+  overflow: hidden;
+}
+
+.plan-body {
+  height: 100%;
+  margin-top: 0;
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
+.plan-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 6px 6px 0;
+}
+
+.plan-calendar {
+  align-self: stretch;
+  padding: 14px;
+}
+
+.plan-comment {
+  border: var(--pixel-border);
+  padding: 14px;
+  background: var(--pixel-cream);
+  box-shadow: var(--pixel-shadow);
+}
+
+.plan-comment-button {
+  display: block;
+  width: 100%;
+  border: var(--pixel-border);
+  border-radius: 0;
+  padding: 10px 12px;
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+  box-shadow: var(--pixel-shadow-small);
+  font: inherit;
+  cursor: pointer;
+}
+
+.plan-comment-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.plan-comment-status {
+  min-height: 1.2em;
+  margin: 10px 0 0;
+  color: var(--pixel-green);
+  font-size: 0.82rem;
+}
+
+.plan-last-reply {
+  margin-top: 10px;
+  border-top: 2px dashed var(--pixel-brown);
+  padding-top: 10px;
+  font-size: 0.85rem;
+}
+
+.plan-last-reply summary {
+  color: var(--pixel-brown);
+  cursor: pointer;
+}
+
+.plan-last-reply p {
+  margin: 8px 0 0;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.plan-page {
+  height: 100%;
+}
+
+/* Settings "햄이 동작" tab: frequency/sleep choices and a gallery of hamster clips. */
+.pet-choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  border: 0;
+  padding: 0;
+}
+
+.pet-choice-group legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-weight: 700;
+}
+
+.pet-choice-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid var(--pixel-ink);
+  padding: 6px 10px;
+  background: #fff8e4;
+  cursor: pointer;
+}
+
+.pet-choice-group label:has(input:checked) {
+  color: var(--pixel-cream);
+  background: var(--pixel-green);
+}
+
+.pet-choice-group label:has(input:checked) :where(span, small) {
+  color: var(--pixel-cream);
+}
+
+.pet-choice-group input {
+  margin: 0;
+  accent-color: var(--pixel-orange);
+}
+
+.pet-choice-group small {
+  color: var(--pixel-brown);
+  font-size: 0.75rem;
+}
+
+.pet-choice-note {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+}
+
+.pet-clip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pet-clip-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid var(--pixel-ink);
+  padding: 10px;
+  background: #fff8e4;
+  text-align: center;
+}
+
+.pet-clip-card.is-off .pet-clip-preview {
+  opacity: 0.45;
+}
+
+.pet-clip-card strong {
+  font-size: 0.95rem;
+}
+
+.pet-clip-card p {
+  min-height: 2.6em;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.pet-clip-card .setting-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.pet-clip-card button.secondary {
+  width: 100%;
+  font-size: 0.8rem;
+}
+
+.pet-clip-card small {
+  min-height: 1.1em;
+  color: var(--pixel-green);
+  font-size: 0.75rem;
+}
+
+.settings-document button.pet-clip-preview {
+  display: grid;
+  width: 116px;
+  height: 110px;
+  border: 2px solid var(--pixel-ink);
+  padding: 4px;
+  background: var(--pixel-sand);
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.pet-clip-preview .pet-motion-wrapper {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pet-clip-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}

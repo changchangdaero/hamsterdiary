@@ -187,8 +187,6 @@ export interface BatchScheduleResult {
   affected: Schedule[]
 }
 
-export const listStoredSchedules = (): Schedule[] => sortedSchedules()
-
 const scheduleDateKey = (schedule: Schedule): string => {
   const date = new Date(schedule.startAt)
   const pad = (value: number): string => String(value).padStart(2, '0')

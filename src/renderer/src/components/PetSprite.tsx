@@ -4,6 +4,7 @@ import type {
   PointerEventHandler
 } from 'react'
 import type { PetEmotion } from '../../../shared/types/pet'
+import type { PetIdleActionId } from '../petIdleBehaviors'
 import {
   PET_FRAME_IMAGES,
   type PetVisualFrame
@@ -12,12 +13,15 @@ import {
 interface PetSpriteProps {
   emotion: PetEmotion
   frame: PetVisualFrame
+  wakePhase: 'bubble' | 'startle' | null
+  idleAction: PetIdleActionId | null
   animationKey: number
   onPointerDown: PointerEventHandler<HTMLDivElement>
   onPointerMove: PointerEventHandler<HTMLDivElement>
   onPointerUp: PointerEventHandler<HTMLDivElement>
   onPointerCancel: PointerEventHandler<HTMLDivElement>
   onClick: MouseEventHandler<HTMLDivElement>
+  onDoubleClick: MouseEventHandler<HTMLDivElement>
   onContextMenu: MouseEventHandler<HTMLDivElement>
 }
 
@@ -33,18 +37,24 @@ function PetSprite(props: PetSpriteProps): React.JSX.Element {
         onPointerUp={props.onPointerUp}
         onPointerCancel={props.onPointerCancel}
         onClick={props.onClick}
+        onDoubleClick={props.onDoubleClick}
         onContextMenu={props.onContextMenu}
       >
         <div
-          key={`${props.emotion}-${props.animationKey}`}
-          className={`pet-motion-wrapper emotion-${props.emotion}`}
+          key={`${props.emotion}-${props.idleAction ?? ''}-${props.animationKey}`}
+          className={`pet-motion-wrapper emotion-${props.emotion}${
+            props.wakePhase ? ` wake-${props.wakePhase}` : ''
+          }${props.idleAction ? ` action-${props.idleAction}` : ''}`}
         >
           <img
             className="pet-sprite"
             src={PET_FRAME_IMAGES[props.frame]}
-            alt="화면 위에서 감정을 표현하는 햄스터"
+            alt="화면 위에서 감정을 표현하는 햄이"
             draggable={false}
           />
+          {props.wakePhase === 'bubble' && (
+            <span className="pet-wake-bubble" aria-hidden="true" />
+          )}
         </div>
       </div>
     </div>

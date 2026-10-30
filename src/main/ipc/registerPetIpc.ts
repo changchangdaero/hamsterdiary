@@ -37,6 +37,7 @@ interface RegisterPetIpcOptions {
   openPomodoro: () => void
   openTodos: () => void
   openDiary: () => void
+  openDailyPlan: () => void
   quitApp: () => void
 }
 
@@ -412,9 +413,10 @@ export const registerPetIpc = (
       { type: 'separator' },
       { label: '일정 다이어리 열기', click: options.openScheduleDiary },
       { label: '새 일정 추가', click: options.openNewSchedule },
-      { label: '뽀모도로 타이머', click: options.openPomodoro },
+      { label: '집중 타이머', click: options.openPomodoro },
       { label: '할 일 목록', click: options.openTodos },
       { label: '일기', click: options.openDiary },
+      { label: '하루 계획', click: options.openDailyPlan },
       { type: 'separator' },
       {
         label: '펫 표시',
@@ -441,11 +443,18 @@ export const registerPetIpc = (
     options.closePetScheduleInput()
   }
 
+  const openScheduleInput = (event: IpcMainEvent, ...args: unknown[]): void => {
+    const petWindow = options.getPetWindow()
+    if (!isPetSender(event, petWindow) || args.length !== 0 || dragState) return
+    options.togglePetScheduleInput()
+  }
+
   ipcMain.on(IPC_CHANNELS.setPetMouseInteractive, setMouseInteractive)
   ipcMain.on(IPC_CHANNELS.beginPetDrag, beginDrag)
   ipcMain.on(IPC_CHANNELS.movePetDrag, moveDrag)
   ipcMain.on(IPC_CHANNELS.endPetDrag, endDrag)
   ipcMain.on(IPC_CHANNELS.showPetContextMenu, showContextMenu)
+  ipcMain.on(IPC_CHANNELS.openPetScheduleInput, openScheduleInput)
   ipcMain.on(IPC_CHANNELS.closePetScheduleInput, closeScheduleInput)
   ipcMain.handle(IPC_CHANNELS.setPetEmotion, setEmotion)
   ipcMain.handle(IPC_CHANNELS.showPetMessage, showMessage)
@@ -461,6 +470,7 @@ export const registerPetIpc = (
     ipcMain.removeListener(IPC_CHANNELS.movePetDrag, moveDrag)
     ipcMain.removeListener(IPC_CHANNELS.endPetDrag, endDrag)
     ipcMain.removeListener(IPC_CHANNELS.showPetContextMenu, showContextMenu)
+    ipcMain.removeListener(IPC_CHANNELS.openPetScheduleInput, openScheduleInput)
     ipcMain.removeListener(
       IPC_CHANNELS.closePetScheduleInput,
       closeScheduleInput

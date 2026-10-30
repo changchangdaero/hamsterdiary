@@ -5,8 +5,13 @@ import type {
   SettingsStoreData
 } from './stores'
 import type {
+  PetActionPlayStatus,
+  PetActionRequest,
+  PetActionResult,
+  PetBehaviorSettings,
   PetEmotion,
   PetDragMovePayload,
+  PetIdleActionId,
   PetMessagePayload,
   PetScheduleInputPlacement,
   ResolvedPetMessage
@@ -21,20 +26,20 @@ import type {
   ReminderControlPayload,
   ReminderSettings
 } from './notifications'
-import type {
-  ScheduleConversationRequest,
-  ScheduleConversationResponse
-} from './scheduleConversation'
 import type { Holiday } from './holiday'
-import type { GeminiKeyStatus } from './geminiKey'
+import type { HamiChatRequest, HamiChatResponse } from './chat'
 import type { PomodoroSettings, PomodoroState } from './pomodoro'
 import type {
   SetTodoDonePayload,
-  Todo,
-  TodoConversationRequest,
-  TodoConversationResponse
+  Todo
 } from './todo'
-import type { DiaryComfortResponse, DiaryEntry, SaveDiaryPayload } from './diary'
+import type { DiaryEntry, SaveDiaryPayload } from './diary'
+import type {
+  DailyPlan,
+  DailyPlanCommentResult,
+  SaveDailyPlanPayload
+} from './plan'
+import type { NotebookViewRequest } from './notebook'
 
 export interface RuntimeVersions {
   electron: string
@@ -51,6 +56,8 @@ export interface FoundationStatus {
   }
 }
 
+export type SettingsSection = 'conversation' | 'reminders' | 'focus' | 'pet'
+
 export interface DesktopPetAPI {
   getFoundationStatus: () => Promise<FoundationStatus>
   incrementPhase0Counter: () => Promise<FoundationStatus>
@@ -62,7 +69,9 @@ export interface DesktopPetAPI {
   showPetMessage: (payload: PetMessagePayload) => Promise<void>
   hidePetMessage: () => Promise<void>
   showPetContextMenu: () => void
+  openPetScheduleInput: () => void
   closePetScheduleInput: () => void
+  notifyPetRendererReady: () => void
   onPetScheduleInputOpened: (
     listener: (placement: PetScheduleInputPlacement) => void
   ) => () => void
@@ -73,9 +82,18 @@ export interface DesktopPetAPI {
   ) => () => void
   onPetMessageHidden: (listener: () => void) => () => void
   onPetWindowHidden: (listener: () => void) => () => void
-  converseAboutSchedule: (
-    request: ScheduleConversationRequest
-  ) => Promise<ScheduleConversationResponse>
+  onPetUserPresenceChanged: (listener: (away: boolean) => void) => () => void
+  getPetBehaviorSettings: () => Promise<PetBehaviorSettings>
+  updatePetBehaviorSettings: (
+    settings: PetBehaviorSettings
+  ) => Promise<PetBehaviorSettings>
+  onPetBehaviorSettingsChanged: (
+    listener: (settings: PetBehaviorSettings) => void
+  ) => () => void
+  playPetAction: (actionId: PetIdleActionId) => Promise<PetActionPlayStatus>
+  onPetActionRequested: (listener: (request: PetActionRequest) => void) => () => void
+  reportPetActionResult: (result: PetActionResult) => void
+  converseWithHami: (request: HamiChatRequest) => Promise<HamiChatResponse>
   listSchedules: () => Promise<Schedule[]>
   createSchedule: (draft: ScheduleDraft) => Promise<Schedule[]>
   updateSchedule: (payload: UpdateSchedulePayload) => Promise<Schedule[]>
@@ -91,12 +109,12 @@ export interface DesktopPetAPI {
   ) => () => void
   onSchedulesChanged: (listener: (schedules: Schedule[]) => void) => () => void
   listHolidays: (years: number[]) => Promise<Holiday[]>
-  getGeminiKeyStatus: () => Promise<GeminiKeyStatus>
-  saveGeminiKey: (key: string) => Promise<GeminiKeyStatus>
-  deleteGeminiKey: () => Promise<GeminiKeyStatus>
-  openGeminiKeyPage: () => Promise<void>
   completeOnboarding: () => Promise<void>
-  openSettings: () => Promise<void>
+  openSettings: (section?: SettingsSection) => Promise<void>
+  onSettingsSectionRequested: (
+    listener: (section: SettingsSection) => void
+  ) => () => void
+  setSettingsDirty: (dirty: boolean) => void
   openHelp: () => Promise<void>
   closeHelp: () => Promise<void>
   getPomodoroState: () => Promise<PomodoroState>
@@ -116,20 +134,23 @@ export interface DesktopPetAPI {
   createTodo: (text: string) => Promise<Todo[]>
   setTodoDone: (payload: SetTodoDonePayload) => Promise<Todo[]>
   deleteTodo: (id: string) => Promise<Todo[]>
-  converseAboutTodo: (
-    request: TodoConversationRequest
-  ) => Promise<TodoConversationResponse>
   openTodos: () => Promise<void>
-  closeTodos: () => Promise<void>
   onTodosChanged: (listener: (todos: Todo[]) => void) => () => void
   getDiary: (date: string) => Promise<DiaryEntry | null>
   listDiaryDates: () => Promise<string[]>
   saveDiary: (payload: SaveDiaryPayload) => Promise<DiaryEntry | null>
-  comfortDiary: (date: string) => Promise<DiaryComfortResponse>
   openDiary: (date?: string) => Promise<void>
-  closeDiary: () => Promise<void>
   onDiaryChanged: (listener: (dates: string[]) => void) => () => void
-  onDiaryOpenDateRequested: (listener: (date: string) => void) => () => void
+  getDailyPlan: (date: string) => Promise<DailyPlan | null>
+  listDailyPlanDates: () => Promise<string[]>
+  saveDailyPlan: (payload: SaveDailyPlanPayload) => Promise<DailyPlan | null>
+  openDailyPlan: (date?: string) => Promise<void>
+  commentOnDailyPlan: (date: string) => Promise<DailyPlanCommentResult>
+  onDailyPlanChanged: (listener: (dates: string[]) => void) => () => void
+  closeNotebook: () => Promise<void>
+  onNotebookViewRequested: (
+    listener: (request: NotebookViewRequest) => void
+  ) => () => void
   getReminderSettings: () => Promise<ReminderSettings>
   updateReminderSettings: (
     settings: ReminderSettings

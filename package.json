@@ -1,6 +1,6 @@
 {
   "name": "desktop-pet-scheduler",
-  "version": "0.1.0",
+  "version": "0.1.6",
   "description": "Desktop pet scheduler foundation",
   "main": "./out/main/index.js",
   "author": "",
@@ -11,7 +11,9 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "build": "npm run typecheck && electron-vite build",
-    "build:win": "npm run build && electron-builder --win portable --x64"
+    "build:win": "npm run build && electron-builder --win portable --x64",
+    "backend:check": "npm --prefix backend run check",
+    "backend:build": "npm --prefix backend run build"
   },
   "dependencies": {
     "@electron-toolkit/preload": "3.0.2",
@@ -33,11 +35,12 @@
   },
   "build": {
     "appId": "com.desktop.pet.scheduler",
-    "productName": "Desktop Pet Scheduler",
+    "productName": "Hami",
     "directories": {
       "output": "dist"
     },
     "artifactName": "${productName}-${version}-portable-${arch}.${ext}",
+    "compression": "store",
     "files": [
       "out/**/*"
     ],
@@ -45,9 +48,18 @@
       {
         "from": "resources/tray-icon.png",
         "to": "tray-icon.png"
+      },
+      {
+        "from": "resources/window-icon.png",
+        "to": "window-icon.png"
+      },
+      {
+        "from": "resources/app-icon.ico",
+        "to": "app-icon.ico"
       }
     ],
     "win": {
+      "icon": "resources/app-icon.ico",
       "target": [
         {
           "target": "portable",

@@ -13,7 +13,6 @@ interface Options {
   todosChanged: (todos: Todo[]) => void
   todoCompleted: (allDone: boolean) => void
   openTodos: () => void
-  closeTodos: () => void
 }
 
 const sortedTodos = (): Todo[] =>
@@ -128,10 +127,6 @@ export const registerTodoIpc = (options: Options): (() => void) => {
     assertTrusted(event)
     options.openTodos()
   })
-  ipcMain.handle(IPC_CHANNELS.closeTodos, (event) => {
-    assertTrusted(event)
-    options.closeTodos()
-  })
 
   return () => {
     for (const channel of [
@@ -139,8 +134,7 @@ export const registerTodoIpc = (options: Options): (() => void) => {
       IPC_CHANNELS.createTodo,
       IPC_CHANNELS.setTodoDone,
       IPC_CHANNELS.deleteTodo,
-      IPC_CHANNELS.openTodos,
-      IPC_CHANNELS.closeTodos
+      IPC_CHANNELS.openTodos
     ]) ipcMain.removeHandler(channel)
   }
 }

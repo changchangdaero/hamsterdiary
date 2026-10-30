@@ -15,14 +15,3 @@ export interface TodoMutationResult {
   changed: Todo | null
   allDone: boolean
 }
-
-export interface TodoConversationRequest {
-  message: string
-  history: Array<{ role: 'user' | 'assistant'; text: string }>
-}
-
-export interface TodoConversationResponse {
-  reply: string
-  completed: boolean
-}
-
