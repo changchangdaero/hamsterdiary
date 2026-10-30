@@ -1,5 +1,19 @@
 alert_email = "you@example.com"
 
+# Usage limits per installation.
+daily_request_limit   = 10
+monthly_request_limit = 60
+
+# Whole-service AI budget in KRW. Alarms fire at 50% and 80% of the budget;
+# the Lambda stops calling the AI at the cutoff.
+monthly_budget_krw = 30000
+budget_cutoff_krw  = 27000
+
 # Conservative operational assumptions. Update these when provider pricing changes.
-ai_model    = "gpt-5-nano"
-usd_krw_rate = 1500
+ai_model                      = "gpt-5-nano"
+usd_krw_rate                  = 1500
+input_usd_per_million_tokens  = 0.05
+output_usd_per_million_tokens = 0.4
+
+# Leave unset unless the account's Lambda concurrency limit is above 10.
+# lambda_reserved_concurrency = 5

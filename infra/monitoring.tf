@@ -50,28 +50,28 @@ resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "ai_cost_half" {
-  alarm_name          = "${local.name}-ai-cost-15000-krw"
-  alarm_description   = "Estimated Hami AI cost reached 15,000 KRW"
+  alarm_name          = "${local.name}-ai-cost-half"
+  alarm_description   = "Estimated Hami AI cost reached ${local.cost_alarm_thresholds_krw.half} KRW"
   namespace           = "Hami/AI"
   metric_name         = "EstimatedMonthlyCostKrw"
   statistic           = "Maximum"
   period              = 300
   evaluation_periods  = 1
-  threshold           = 15000
+  threshold           = local.cost_alarm_thresholds_krw.half
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "ai_cost_urgent" {
-  alarm_name          = "${local.name}-ai-cost-24000-krw"
-  alarm_description   = "Estimated Hami AI cost reached 24,000 KRW"
+  alarm_name          = "${local.name}-ai-cost-urgent"
+  alarm_description   = "Estimated Hami AI cost reached ${local.cost_alarm_thresholds_krw.urgent} KRW"
   namespace           = "Hami/AI"
   metric_name         = "EstimatedMonthlyCostKrw"
   statistic           = "Maximum"
   period              = 300
   evaluation_periods  = 1
-  threshold           = 24000
+  threshold           = local.cost_alarm_thresholds_krw.urgent
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = [aws_sns_topic.alerts.arn]

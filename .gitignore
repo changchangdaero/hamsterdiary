@@ -7,11 +7,13 @@ out/
 dist/
 release/
 backend/dist/
-infra/.terraform/
+infra/**/.terraform/
 infra/.terraform-build/
-infra/*.tfstate
-infra/*.tfstate.*
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/*.tfplan
 infra/terraform.tfvars
+infra/backend.hcl
 crash.log
 
 # Environment variables and secrets
