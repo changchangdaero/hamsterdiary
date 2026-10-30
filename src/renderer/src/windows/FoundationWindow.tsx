@@ -95,7 +95,7 @@ function FoundationWindow(): React.JSX.Element {
 
   return (
     <main className="foundation-card">
-      <h1>Desktop Pet Scheduler Foundation</h1>
+      <h1>Hami Developer Tools</h1>
 
       {foundation ? (
         <>

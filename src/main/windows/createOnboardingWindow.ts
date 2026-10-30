@@ -1,8 +1,11 @@
 import { join } from 'node:path'
 import { BrowserWindow } from 'electron'
+import { getWindowIconPath } from '../paths'
+import { configureWindowTaskbar } from './configureWindowTaskbar'
 
 export const createOnboardingWindow = (): BrowserWindow => {
   const window = new BrowserWindow({
+    icon: getWindowIconPath(),
     width: 720,
     height: 720,
     minWidth: 620,
@@ -16,6 +19,7 @@ export const createOnboardingWindow = (): BrowserWindow => {
       sandbox: true
     }
   })
+  configureWindowTaskbar(window)
   window.once('ready-to-show', () => window.show())
   if (process.env.ELECTRON_RENDERER_URL) {
     const url = new URL(process.env.ELECTRON_RENDERER_URL)

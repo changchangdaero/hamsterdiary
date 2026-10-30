@@ -68,7 +68,7 @@ function PomodoroWindow(): React.JSX.Element {
         <img
           className="pomodoro-pet"
           src={PET_FRAME_IMAGES[petFrame]}
-          alt={state.mode === 'focus' ? '함께 집중하는 햄스터' : '쉬는 햄스터'}
+          alt={state.mode === 'focus' ? '함께 집중하는 햄이' : '쉬는 햄이'}
         />
         <output className="pomodoro-time" aria-live="off">
           {formatTime(state.remainingSeconds)}
@@ -97,7 +97,7 @@ function PomodoroWindow(): React.JSX.Element {
         {error && <p className="pomodoro-error" role="alert">{error}</p>}
       </section>
       <footer>
-        <button type="button" className="text-button" onClick={() => void window.desktopPetAPI.openSettings()}>
+        <button type="button" className="text-button" onClick={() => void window.desktopPetAPI.openSettings('focus')}>
           집중·휴식 시간 설정
         </button>
         <button type="button" className="text-button" onClick={() => void window.desktopPetAPI.closePomodoro()}>
@@ -109,4 +109,3 @@ function PomodoroWindow(): React.JSX.Element {
 }
 
 export default PomodoroWindow
-

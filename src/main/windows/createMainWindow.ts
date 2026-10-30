@@ -1,9 +1,12 @@
 // 보안 설정이 적용된 구간 0 테스트용 BrowserWindow를 생성하는 파일입니다.
 import { join } from 'node:path'
 import { BrowserWindow, shell } from 'electron'
+import { getWindowIconPath } from '../paths'
+import { configureWindowTaskbar } from './configureWindowTaskbar'
 
 export const createMainWindow = (): BrowserWindow => {
   const mainWindow = new BrowserWindow({
+    icon: getWindowIconPath(),
     width: 760,
     height: 560,
     minWidth: 620,
@@ -17,6 +20,7 @@ export const createMainWindow = (): BrowserWindow => {
       sandbox: true
     }
   })
+  configureWindowTaskbar(mainWindow)
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()

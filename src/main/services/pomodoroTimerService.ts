@@ -48,32 +48,17 @@ export class PomodoroTimerService {
   constructor(options: Options) {
     this.options = options
     this.now = options.now ?? (() => new Date())
-    this.state = runtimeStore.get('pomodoro')
-    this.normalizeStoredState()
-    if (this.state.runState === 'running') {
-      this.tick()
-      this.startTicker()
+    this.state = {
+      mode: 'focus',
+      runState: 'idle',
+      remainingSeconds: secondsFor('focus', this.settings()),
+      endAt: null
     }
+    this.persist()
   }
 
   private settings(): PomodoroSettings {
     return settingsStore.get('pomodoro')
-  }
-
-  private normalizeStoredState(): void {
-    const validMode = this.state?.mode === 'focus' || this.state?.mode === 'break'
-    const validRunState = ['idle', 'running', 'paused'].includes(
-      this.state?.runState
-    )
-    if (!validMode || !validRunState || !Number.isFinite(this.state.remainingSeconds)) {
-      this.state = {
-        mode: 'focus',
-        runState: 'idle',
-        remainingSeconds: secondsFor('focus', this.settings()),
-        endAt: null
-      }
-      this.persist()
-    }
   }
 
   private remainingNow(): number {

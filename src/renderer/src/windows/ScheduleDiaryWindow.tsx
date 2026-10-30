@@ -4,47 +4,20 @@ import type { Schedule } from '../../../shared/types/schedule'
 import type { Holiday } from '../../../shared/types/holiday'
 import ScheduleForm from '../components/ScheduleForm'
 import PixelConfirmDialog from '../components/PixelConfirmDialog'
+import {
+  buildCalendarDays,
+  fromDateKey,
+  toDateKey,
+  type CalendarDay
+} from '../dateKey'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 const VISIBLE_SCHEDULE_LIMIT = 2
-
-interface CalendarDay {
-  date: Date
-  key: string
-  inCurrentMonth: boolean
-}
 
 type EditingState =
   | { type: 'new'; date: string }
   | { type: 'edit'; schedule: Schedule }
   | null
-
-const pad = (value: number): string => String(value).padStart(2, '0')
-
-const toDateKey = (date: Date): string =>
-  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-
-const fromDateKey = (dateKey: string): Date => {
-  const [year, month, day] = dateKey.split('-').map(Number)
-  return new Date(year, month - 1, day)
-}
-
-export const buildCalendarDays = (year: number, month: number): CalendarDay[] => {
-  const firstDay = new Date(year, month, 1)
-  const calendarStart = new Date(year, month, 1 - firstDay.getDay())
-  return Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(
-      calendarStart.getFullYear(),
-      calendarStart.getMonth(),
-      calendarStart.getDate() + index
-    )
-    return {
-      date,
-      key: toDateKey(date),
-      inCurrentMonth: date.getFullYear() === year && date.getMonth() === month
-    }
-  })
-}
 
 const timeLabel = (schedule: Schedule): string =>
   new Date(schedule.startAt).toLocaleTimeString('ko-KR', {
@@ -63,7 +36,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [holidays, setHolidays] = useState<Holiday[]>([])
-  const [diaryDates, setDiaryDates] = useState<Set<string>>(new Set())
+  const [planDates, setPlanDates] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<EditingState>(null)
   const [pendingDelete, setPendingDelete] = useState<Schedule | null>(null)
   const [pendingNewDate, setPendingNewDate] = useState<string | null>(null)
@@ -147,18 +120,18 @@ function ScheduleDiaryWindow(): React.JSX.Element {
         setSchedules(items)
       })
     void window.desktopPetAPI
-      .listDiaryDates()
-      .then((dates) => active && setDiaryDates(new Set(dates)))
+      .listDailyPlanDates()
+      .then((dates) => active && setPlanDates(new Set(dates)))
       .catch(() => undefined)
-    const unsubscribeDiaryChanged = window.desktopPetAPI.onDiaryChanged(
-      (dates) => setDiaryDates(new Set(dates))
+    const unsubscribePlanChanged = window.desktopPetAPI.onDailyPlanChanged(
+      (dates) => setPlanDates(new Set(dates))
     )
     window.desktopPetAPI.notifyScheduleDiaryReady()
     return () => {
       active = false
       unsubscribe()
       unsubscribeSchedulesChanged()
-      unsubscribeDiaryChanged()
+      unsubscribePlanChanged()
     }
   }, [openNewForm])
 
@@ -270,7 +243,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
     <main className="schedule-diary">
       <header className="schedule-header">
         <div>
-          <p className="schedule-eyebrow">Desktop Pet Scheduler</p>
+          <p className="schedule-eyebrow">HAMI</p>
           <h1>일정 다이어리</h1>
         </div>
         <div className="schedule-header-actions" ref={utilityMenuRef}>
@@ -287,6 +260,13 @@ function ScheduleDiaryWindow(): React.JSX.Element {
             onClick={() => void window.desktopPetAPI.openDiary()}
           >
             ✎ 일기 쓰기
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void window.desktopPetAPI.openDailyPlan()}
+          >
+            ☰ 하루 계획
           </button>
           <button
             type="button"
@@ -423,8 +403,8 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                     <span className="calendar-day-number">
                       {day.date.getDate()}
                     </span>
-                    {diaryDates.has(day.key) && (
-                      <span className="calendar-diary-mark" title="작성한 일기 있음" aria-label="작성한 일기 있음" />
+                    {planDates.has(day.key) && (
+                      <span className="calendar-diary-mark" title="작성한 계획 있음" aria-label="작성한 계획 있음" />
                     )}
                   </span>
                   {dayHolidays.length > 0 && (
@@ -554,15 +534,13 @@ function ScheduleDiaryWindow(): React.JSX.Element {
             </ul>
           )}
         </div>
-        {diaryDates.has(selectedDate) && (
-          <button
-            type="button"
-            className="detail-diary-button"
-            onClick={() => void window.desktopPetAPI.openDiary(selectedDate)}
-          >
-            그날 일기 보기
-          </button>
-        )}
+        <button
+          type="button"
+          className="detail-diary-button"
+          onClick={() => void window.desktopPetAPI.openDailyPlan(selectedDate)}
+        >
+          계획짜자
+        </button>
         <button
           type="button"
           className="detail-add-button"
@@ -576,6 +554,11 @@ function ScheduleDiaryWindow(): React.JSX.Element {
       {editing !== null && (
         <div className="schedule-modal-backdrop" role="presentation">
           <ScheduleForm
+            key={
+              editing.type === 'new'
+                ? `new-${editing.date}`
+                : `edit-${editing.schedule.id}`
+            }
             schedule={editing.type === 'edit' ? editing.schedule : null}
             initialDate={
               editing.type === 'new' ? editing.date : undefined
@@ -586,6 +569,11 @@ function ScheduleDiaryWindow(): React.JSX.Element {
             onCancel={() => {
               dirtyRef.current = false
               setEditing(null)
+            }}
+            onDelete={(schedule) => {
+              dirtyRef.current = false
+              setEditing(null)
+              setPendingDelete(schedule)
             }}
             onSaved={(items) => {
               setSchedules(items)

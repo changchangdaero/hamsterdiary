@@ -10,14 +10,25 @@ function HelpWindow(): React.JSX.Element {
       <header className="help-header">
         <div>
           <p className="pixel-kicker">HAMSTER GUIDE</p>
-          <h1>햄스터 도움말</h1>
+          <h1>햄이 도움말</h1>
           <p>뭐라고 말할지 고민되면 여기서 골라 말해봐!</p>
         </div>
-        <img src={PET_FRAME_IMAGES.question} alt="도와주는 햄스터" />
+        <img src={PET_FRAME_IMAGES.question} alt="도와주는 햄이" />
       </header>
 
       <section className="help-card help-examples">
-        <h2>1. 나한테 이렇게 말해봐</h2>
+        <h2>1. 햄이 조작하기</h2>
+        <ul>
+          <li>햄이를 두 번 클릭하면 대화할 수 있어.</li>
+          <li>누른 채 움직이면 원하는 위치로 옮길 수 있어.</li>
+          <li>우클릭하면 일정, 할 일, 타이머와 설정을 열 수 있어.</li>
+          <li>말풍선을 클릭하면 문장을 바로 끝까지 볼 수 있어.</li>
+          <li>트레이에서 햄이를 숨기거나 다시 부를 수 있어.</li>
+        </ul>
+      </section>
+
+      <section className="help-card help-examples">
+        <h2>2. 나한테 이렇게 말해봐</h2>
         <div className="help-example-grid">
           <div>
             <h3>일정 잡기</h3>
@@ -46,7 +57,7 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>2. 할 일도 나한테 맡겨</h2>
+        <h2>3. 할 일도 나한테 맡겨</h2>
         <div className="help-example-grid">
           <div>
             <h3>할 일 추가하기</h3>
@@ -77,7 +88,7 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>3. 내가 챙겨줄게</h2>
+        <h2>4. 내가 챙겨줄게</h2>
         <ul>
           <li>물 마실 시간, 스트레칭할 시간을 내가 알려줄게.</li>
           <li>너무 오래 앉아있으면 “잠깐 일어나자~” 하고 말 걸 거야.</li>
@@ -86,7 +97,7 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>4. 일기도 나한테 들려줘</h2>
+        <h2>5. 일기도 나한테 들려줘</h2>
         <ul>
           <li>일기 탭에서 오늘 있었던 일을 적고 먼저 저장해 줘.</li>
           <li><strong>나 오늘 이랬어</strong> 버튼을 누르면 내가 그날 일기를 천천히 읽어볼게.</li>
@@ -96,7 +107,7 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>5. 알아두면 좋은 것</h2>
+        <h2>6. 알아두면 좋은 것</h2>
         <ul>
           <li>날짜는 “내일”, “이번 주 금요일”처럼 편하게 말해도 돼.</li>
           <li>여러 일정도 한 번에 말할 수 있어.</li>
@@ -105,12 +116,12 @@ function HelpWindow(): React.JSX.Element {
       </section>
 
       <section className="help-card">
-        <h2>6. 그 외에</h2>
+        <h2>7. 그 외에</h2>
         <ul>
           <li>달력에서 전체 일정을 볼 수 있어.</li>
           <li>집중 타이머를 켜면 나도 옆에서 같이 집중하고 쉴게.</li>
           <li>설정에서 API 키랑 알림을 바꿀 수 있어.</li>
-          <li>심심하면 내가 책상 위에서 꼬물거려.</li>
+          <li>가끔 눈을 깜빡이며 조용히 곁에 있을게.</li>
         </ul>
       </section>
 

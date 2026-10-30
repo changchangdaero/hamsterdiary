@@ -1,9 +1,12 @@
 // 일정 목록과 편집 폼을 표시하는 단일 다이어리 창을 생성하는 파일입니다.
 import { join } from 'node:path'
 import { BrowserWindow, shell } from 'electron'
+import { getWindowIconPath } from '../paths'
+import { configureWindowTaskbar } from './configureWindowTaskbar'
 
 export const createScheduleDiaryWindow = (): BrowserWindow => {
   const window = new BrowserWindow({
+    icon: getWindowIconPath(),
     width: 1200,
     height: 800,
     minWidth: 1000,
@@ -17,6 +20,7 @@ export const createScheduleDiaryWindow = (): BrowserWindow => {
       sandbox: true
     }
   })
+  configureWindowTaskbar(window)
 
   window.once('ready-to-show', () => window.show())
   window.webContents.setWindowOpenHandler(({ url }) => {

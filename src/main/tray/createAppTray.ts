@@ -6,6 +6,7 @@ interface CreateAppTrayOptions {
   isPetVisible: () => boolean
   showPet: () => void
   hidePet: () => void
+  talkToPet: () => void
   openScheduleDiary: () => void
   openNewSchedule: () => void
   showFoundation: () => void
@@ -14,6 +15,7 @@ interface CreateAppTrayOptions {
   openPomodoro: () => void
   openTodos: () => void
   openDiary: () => void
+  openDailyPlan: () => void
   quitApp: () => void
 }
 
@@ -26,12 +28,14 @@ export const createAppTray = (
   options: CreateAppTrayOptions
 ): AppTrayController => {
   const tray = new Tray(getTrayIconPath())
-  tray.setToolTip('Desktop Pet Scheduler')
+  tray.setToolTip('Hami')
 
   const refreshMenu = (): void => {
     const isVisible = options.isPetVisible()
     tray.setContextMenu(
       Menu.buildFromTemplate([
+        { label: '햄이에게 말 걸기', click: options.talkToPet },
+        { type: 'separator' },
         {
           label: '일정 다이어리 열기',
           click: options.openScheduleDiary
@@ -40,9 +44,10 @@ export const createAppTray = (
           label: '새 일정 추가',
           click: options.openNewSchedule
         },
-        { label: '뽀모도로 타이머', click: options.openPomodoro },
+        { label: '집중 타이머', click: options.openPomodoro },
         { label: '할 일 목록', click: options.openTodos },
         { label: '일기 쓰기', click: options.openDiary },
+        { label: '하루 계획', click: options.openDailyPlan },
         { type: 'separator' },
         {
           label: '펫 표시',
@@ -57,7 +62,9 @@ export const createAppTray = (
           }
         },
         { type: 'separator' },
-        { label: '기반 확인 창 열기', click: options.showFoundation },
+        ...(process.env.ELECTRON_RENDERER_URL
+          ? [{ label: '개발자 도구', click: options.showFoundation }]
+          : []),
         { label: '설정', click: options.openSettings },
         { label: '도움말', click: options.openHelp },
         {
