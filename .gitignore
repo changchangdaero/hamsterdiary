@@ -6,6 +6,13 @@ node_modules/
 out/
 dist/
 release/
+backend/dist/
+infra/.terraform/
+infra/.terraform-build/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+crash.log
 
 # Environment variables and secrets
 .env
@@ -28,3 +35,6 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Python caches
+__pycache__/
+*.pyc
