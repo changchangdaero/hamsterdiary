@@ -1,14 +1,12 @@
-data "aws_caller_identity" "current" {}
-
 resource "aws_iam_role" "lambda" {
   name = "${local.name}-lambda"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -26,12 +24,12 @@ resource "aws_iam_role_policy" "lambda" {
         Resource = aws_dynamodb_table.usage.arn
       },
       {
-        Sid      = "ReadOnlyRequiredSecrets"
-        Effect   = "Allow"
-        Action   = "ssm:GetParameter"
+        Sid    = "ReadOnlyRequiredSecrets"
+        Effect = "Allow"
+        Action = "ssm:GetParameter"
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.ai_api_key_parameter_name}",
-          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.hash_secret_parameter_name}"
+          aws_ssm_parameter.ai_api_key.arn,
+          aws_ssm_parameter.installation_hash_secret.arn
         ]
       },
       {

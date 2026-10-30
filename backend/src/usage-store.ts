@@ -31,10 +31,24 @@ interface Reservation {
   month: string
 }
 
-const periods = (now: Date): { day: string; month: string } => ({
-  day: now.toISOString().slice(0, 10),
-  month: now.toISOString().slice(0, 7)
-})
+// Days and months follow Korea time (UTC+9, no daylight saving), so limits refill at local midnight.
+const KST_OFFSET_MS = 9 * 60 * 60 * 1_000
+
+export const periods = (now: Date): { day: string; month: string } => {
+  const local = new Date(now.getTime() + KST_OFFSET_MS).toISOString()
+  return { day: local.slice(0, 10), month: local.slice(0, 7) }
+}
+
+// The next local midnight and the first instant of next local month, as UTC ISO strings.
+export const resetTimes = (now: Date): { daily: string; monthly: string } => {
+  const local = new Date(now.getTime() + KST_OFFSET_MS)
+  const nextDay = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + 1)
+  const nextMonth = Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + 1, 1)
+  return {
+    daily: new Date(nextDay - KST_OFFSET_MS).toISOString(),
+    monthly: new Date(nextMonth - KST_OFFSET_MS).toISOString()
+  }
+}
 
 const expiresAt = (now: Date): number => {
   const expiry = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 3, 1))
@@ -109,14 +123,16 @@ export const reserveUsage = async (
             Update: {
               TableName: config.tableName,
               Key: { pk: 'GLOBAL', sk: `MONTH#${month}` },
-              UpdateExpression: 'SET requestCount = if_not_exists(requestCount, :zero) + :one, reservedCostMicroUsd = if_not_exists(reservedCostMicroUsd, :zero) + :reserved, expiresAt = :ttl',
-              ConditionExpression: '(attribute_not_exists(estimatedCostMicroUsd) AND attribute_not_exists(reservedCostMicroUsd)) OR (attribute_not_exists(estimatedCostMicroUsd) AND reservedCostMicroUsd + :reserved <= :cutoff) OR (attribute_not_exists(reservedCostMicroUsd) AND estimatedCostMicroUsd + :reserved <= :cutoff) OR estimatedCostMicroUsd + reservedCostMicroUsd + :reserved <= :cutoff',
+              UpdateExpression: 'SET requestCount = if_not_exists(requestCount, :zero) + :one, reservedCostMicroUsd = if_not_exists(reservedCostMicroUsd, :zero) + :reserved, committedMicroUsd = if_not_exists(committedMicroUsd, :zero) + :reserved, expiresAt = :ttl',
+              // Condition expressions cannot do arithmetic, so the budget check compares the
+              // running estimated + reserved total against the cutoff minus this reservation.
+              ConditionExpression: 'attribute_not_exists(committedMicroUsd) OR committedMicroUsd <= :maxCommittedBefore',
               ExpressionAttributeValues: {
                 ':zero': 0,
                 ':one': 1,
                 ':ttl': ttl,
                 ':reserved': config.maxRequestCostMicroUsd,
-                ':cutoff': budgetCutoffMicroUsd(config)
+                ':maxCommittedBefore': budgetCutoffMicroUsd(config) - config.maxRequestCostMicroUsd
               }
             }
           }
@@ -191,7 +207,7 @@ export const cancelReservation = async (
           Update: {
             TableName: config.tableName,
             Key: { pk: 'GLOBAL', sk: `MONTH#${reservation.month}` },
-            UpdateExpression: 'SET requestCount = requestCount - :one, reservedCostMicroUsd = reservedCostMicroUsd - :reserved',
+            UpdateExpression: 'SET requestCount = requestCount - :one, reservedCostMicroUsd = reservedCostMicroUsd - :reserved, committedMicroUsd = committedMicroUsd - :reserved',
             ConditionExpression: 'requestCount >= :one AND reservedCostMicroUsd >= :reserved',
             ExpressionAttributeValues: {
               ':one': 1,
@@ -213,13 +229,19 @@ export const recordUsage = async (
   config: AppConfig
 ): Promise<number> => {
   const { month } = periods(now)
+  // DynamoDB rejects attribute values an expression does not use, so each update gets its own set.
   const values = {
     ':zero': 0,
     ':input': inputTokens,
     ':output': outputTokens,
     ':cost': costMicroUsd,
-    ':reserved': config.maxRequestCostMicroUsd,
     ':updatedAt': now.toISOString()
+  }
+  // Update expressions allow one operator per operand, so the swap is precomputed.
+  const globalValues = {
+    ...values,
+    ':reserved': config.maxRequestCostMicroUsd,
+    ':committedDelta': costMicroUsd - config.maxRequestCostMicroUsd
   }
   await Promise.all([
     documentClient.send(
@@ -234,8 +256,8 @@ export const recordUsage = async (
       new UpdateCommand({
         TableName: config.tableName,
         Key: { pk: 'GLOBAL', sk: `MONTH#${month}` },
-        UpdateExpression: 'SET inputTokens = if_not_exists(inputTokens, :zero) + :input, outputTokens = if_not_exists(outputTokens, :zero) + :output, estimatedCostMicroUsd = if_not_exists(estimatedCostMicroUsd, :zero) + :cost, reservedCostMicroUsd = if_not_exists(reservedCostMicroUsd, :zero) - :reserved, updatedAt = :updatedAt',
-        ExpressionAttributeValues: values
+        UpdateExpression: 'SET inputTokens = if_not_exists(inputTokens, :zero) + :input, outputTokens = if_not_exists(outputTokens, :zero) + :output, estimatedCostMicroUsd = if_not_exists(estimatedCostMicroUsd, :zero) + :cost, reservedCostMicroUsd = if_not_exists(reservedCostMicroUsd, :zero) - :reserved, committedMicroUsd = if_not_exists(committedMicroUsd, :zero) + :committedDelta, updatedAt = :updatedAt',
+        ExpressionAttributeValues: globalValues
       })
     )
   ])
@@ -257,4 +279,42 @@ export const releaseLock = async (lockKey: string, config: AppConfig): Promise<v
       Key: { pk: lockKey, sk: 'ACTIVE' }
     })
   )
+}
+
+export interface UsageSnapshot {
+  dailyUsed: number
+  monthlyUsed: number
+  // The whole-service monthly budget is spent; nobody can chat until next month.
+  budgetPaused: boolean
+}
+
+export const readUsage = async (
+  installationHash: string,
+  now: Date,
+  config: AppConfig
+): Promise<UsageSnapshot> => {
+  const { day, month } = periods(now)
+  const result = await documentClient.send(
+    new BatchGetCommand({
+      RequestItems: {
+        [config.tableName]: {
+          ConsistentRead: true,
+          Keys: [
+            { pk: `INSTALL#${installationHash}`, sk: `DAY#${day}` },
+            { pk: `INSTALL#${installationHash}`, sk: `MONTH#${month}` },
+            { pk: 'GLOBAL', sk: `MONTH#${month}` }
+          ],
+          ProjectionExpression: 'pk, sk, requestCount, committedMicroUsd'
+        }
+      }
+    })
+  )
+  const items = result.Responses?.[config.tableName] ?? []
+  const find = (pk: string, sk: string) => items.find((item) => item.pk === pk && item.sk === sk)
+  const committed = Number(find('GLOBAL', `MONTH#${month}`)?.committedMicroUsd ?? 0)
+  return {
+    dailyUsed: Number(find(`INSTALL#${installationHash}`, `DAY#${day}`)?.requestCount ?? 0),
+    monthlyUsed: Number(find(`INSTALL#${installationHash}`, `MONTH#${month}`)?.requestCount ?? 0),
+    budgetPaused: committed > budgetCutoffMicroUsd(config) - config.maxRequestCostMicroUsd
+  }
 }

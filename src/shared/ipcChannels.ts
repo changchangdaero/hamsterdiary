@@ -27,6 +27,7 @@ export const IPC_CHANNELS = {
   petActionResult: 'pet:action-result',
   petRendererReady: 'pet:renderer-ready',
   converseWithHami: 'hami:conversation',
+  getHamiUsage: 'hami:usage',
   listSchedules: 'schedule:list',
   createSchedule: 'schedule:create',
   updateSchedule: 'schedule:update',

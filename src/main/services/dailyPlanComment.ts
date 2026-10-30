@@ -6,7 +6,7 @@ import { converseWithHami } from './hamiChatService'
 
 // The chat server caps one message at 1,000 UTF-16 units, instruction included.
 const MAX_MESSAGE_LENGTH = 1_000
-const INSTRUCTION = `아래는 내 하루 계획이야. 읽고 3~4문장으로 응원해줘.
+const INSTRUCTION = `아래는 내 하루 계획이야. 읽고 3문장 이내, 120자 안팎으로 응원해줘. 목록 말고 말하듯이 써줘.
 계획에 적힌 내용을 구체적으로 짚어서 말해주고, 무리해 보이면 우선순위 하나만 부담 없이 제안해줘.
 훈계하거나 가르치려 들지 말고, 친구처럼 담백하게 말해줘.`
 

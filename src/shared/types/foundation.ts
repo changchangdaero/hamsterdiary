@@ -27,7 +27,7 @@ import type {
   ReminderSettings
 } from './notifications'
 import type { Holiday } from './holiday'
-import type { HamiChatRequest, HamiChatResponse } from './chat'
+import type { HamiChatRequest, HamiChatResponse, HamiUsage } from './chat'
 import type { PomodoroSettings, PomodoroState } from './pomodoro'
 import type {
   SetTodoDonePayload,
@@ -94,6 +94,7 @@ export interface DesktopPetAPI {
   onPetActionRequested: (listener: (request: PetActionRequest) => void) => () => void
   reportPetActionResult: (result: PetActionResult) => void
   converseWithHami: (request: HamiChatRequest) => Promise<HamiChatResponse>
+  getHamiUsage: () => Promise<HamiUsage>
   listSchedules: () => Promise<Schedule[]>
   createSchedule: (draft: ScheduleDraft) => Promise<Schedule[]>
   updateSchedule: (payload: UpdateSchedulePayload) => Promise<Schedule[]>

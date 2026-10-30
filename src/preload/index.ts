@@ -87,6 +87,7 @@ const desktopPetAPI: DesktopPetAPI = {
     ipcRenderer.send(IPC_CHANNELS.petActionResult, result),
   converseWithHami: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.converseWithHami, request),
+  getHamiUsage: () => ipcRenderer.invoke(IPC_CHANNELS.getHamiUsage),
   listSchedules: () => ipcRenderer.invoke(IPC_CHANNELS.listSchedules),
   createSchedule: (draft) =>
     ipcRenderer.invoke(IPC_CHANNELS.createSchedule, draft),

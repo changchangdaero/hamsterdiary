@@ -5,16 +5,16 @@ data "archive_file" "lambda" {
 }
 
 resource "aws_lambda_function" "chat" {
-  function_name = "${local.name}-chat"
-  role          = aws_iam_role.lambda.arn
-  runtime       = "nodejs22.x"
-  handler       = "handler.handler"
-  filename      = data.archive_file.lambda.output_path
+  function_name    = "${local.name}-chat"
+  role             = aws_iam_role.lambda.arn
+  runtime          = "nodejs22.x"
+  handler          = "handler.handler"
+  filename         = data.archive_file.lambda.output_path
   source_code_hash = data.archive_file.lambda.output_base64sha256
 
-  architectures = ["arm64"]
-  memory_size   = 256
-  timeout       = 28
+  architectures                  = ["arm64"]
+  memory_size                    = 256
+  timeout                        = 28
   reserved_concurrent_executions = var.lambda_reserved_concurrency
 
   environment {

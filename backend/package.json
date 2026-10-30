@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/handler.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/handler.mjs",
+    "build": "esbuild src/handler.ts --bundle --platform=node --target=node22 --format=esm --external:@aws-sdk/* --outfile=dist/handler.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test --test-isolation=none tests/*.test.ts",
     "check": "npm run typecheck && npm test && npm run build"

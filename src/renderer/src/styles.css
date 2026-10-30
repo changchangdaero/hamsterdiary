@@ -886,6 +886,70 @@ dd {
   margin-top: 2px;
 }
 
+/* "오늘 AI 대화 3번 더 할 수 있어" once few chats are left today. */
+.pet-inline-usage {
+  margin: -4px 0 8px;
+  color: #b0763f;
+  font-size: 11px;
+}
+
+/* Turns to the next page of a long reply. */
+.pet-inline-input button.pet-inline-next {
+  margin-left: 4px;
+  padding: 0 4px;
+  color: #b0763f;
+  font-size: 0.75em;
+  vertical-align: baseline;
+}
+
+/* Confirmation card for a schedule said in the chat. Nothing is saved until it is confirmed. */
+.pet-schedule-card {
+  margin: 0 0 8px;
+  border: 1px solid #eadcca;
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: #fff3df;
+}
+
+.pet-schedule-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.pet-schedule-card-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.pet-inline-input .pet-schedule-card-actions button {
+  border: 1px solid #d9c2a6;
+  padding: 4px 12px;
+}
+
+.pet-inline-input button.pet-schedule-choice {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+  border: 1px solid #eadcca;
+  padding: 5px 8px;
+  background: #fffaf0;
+  text-align: left;
+}
+
+.pet-inline-input button.pet-schedule-chat-instead {
+  display: block;
+  margin: 4px 0 6px auto;
+  padding: 0;
+  color: #9a7d6c;
+  font-size: 11px;
+  text-decoration: underline;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .speech-bubble,
   .speech-bubble.is-closing {
@@ -2836,6 +2900,94 @@ dd {
   background: var(--pixel-red);
 }
 
+/* Settings "대화" tab: remaining AI chats today and this month. */
+.usage-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.usage-meter-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.usage-meter-heading strong {
+  font-size: 1.35rem;
+}
+
+.usage-meter-heading small {
+  color: var(--pixel-brown);
+  font-size: 0.8rem;
+}
+
+.usage-meter-bar {
+  height: 16px;
+  margin-top: 6px;
+  border: var(--pixel-border);
+  background: #efe3c4;
+  box-shadow: inset 2px 2px 0 rgb(0 0 0 / 12%);
+}
+
+.usage-meter-bar span {
+  display: block;
+  height: 100%;
+  background: var(--pixel-green);
+  transition: width 300ms ease;
+}
+
+.usage-meter.is-low .usage-meter-bar span {
+  background: var(--pixel-orange);
+}
+
+.usage-meter.is-empty .usage-meter-heading strong {
+  color: #9b8f80;
+}
+
+.settings-document .usage-meter p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+}
+
+.settings-document .usage-paused {
+  border: 2px solid var(--pixel-ink);
+  padding: 8px 10px;
+  background: #f6dcc8;
+  font-size: 0.85rem;
+}
+
+.settings-document .usage-note {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.usage-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.usage-privacy {
+  margin-top: 16px;
+  border-top: 2px dashed #d8c7a3;
+  padding-top: 10px;
+}
+
+.settings-document .usage-privacy p {
+  margin: 2px 0;
+  font-size: 0.8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-meter-bar span {
+    transition: none;
+  }
+}
+
 @media (max-width: 660px) {
   .onboarding-card {
     grid-template-columns: 1fr;
@@ -3313,13 +3465,28 @@ dd {
   animation: typewriter-cursor-blink 520ms steps(1, end) infinite;
 }
 
+/* Shown when a long message has another page; clicking the bubble turns to it. */
+.speech-next-page {
+  display: inline-block;
+  margin-left: 4px;
+  color: #b0763f;
+  font-size: 0.75em;
+  animation: speech-next-page-nudge 900ms ease-in-out infinite;
+}
+
+@keyframes speech-next-page-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+
 @keyframes typewriter-cursor-blink {
   0%, 48% { opacity: 1; }
   49%, 100% { opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .typewriter-cursor {
+  .typewriter-cursor,
+  .speech-next-page {
     animation: none;
   }
 }

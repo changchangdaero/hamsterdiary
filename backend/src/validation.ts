@@ -14,6 +14,18 @@ const isTurn = (value: unknown, maxLength: number): value is ChatTurn => {
   )
 }
 
+// GET /v1/usage?installationId=...&appVersion=...
+export const parseUsageRequest = (
+  query: Record<string, string | undefined> | undefined
+): { installationId: string; appVersion: string } => {
+  const installationId = query?.installationId ?? ''
+  const appVersion = query?.appVersion ?? ''
+  if (!UUID_PATTERN.test(installationId) || !VERSION_PATTERN.test(appVersion)) {
+    throw new Error('요청 내용을 다시 확인해줘.')
+  }
+  return { installationId: installationId.toLowerCase(), appVersion }
+}
+
 export const parseChatRequest = (
   value: unknown,
   maxMessageLength: number,

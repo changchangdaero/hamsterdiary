@@ -1,4 +1,4 @@
-import type { APIGatewayProxyHandlerV2 } from 'aws-lambda'
+import type { APIGatewayProxyEventV2, APIGatewayProxyHandlerV2, Context } from 'aws-lambda'
 import { estimateCostMicroUsd } from './cost.js'
 import { loadConfig } from './config.js'
 import { requestAiReply } from './ai-client.js'
@@ -7,12 +7,14 @@ import { publishEstimatedAiCost } from './monitoring.js'
 import { getSecret } from './secrets.js'
 import {
   cancelReservation,
+  readUsage,
   recordUsage,
   releaseLock,
   reserveUsage,
+  resetTimes,
   UsageLimitError
 } from './usage-store.js'
-import { parseChatRequest } from './validation.js'
+import { parseChatRequest, parseUsageRequest } from './validation.js'
 
 const json = (statusCode: number, body: unknown) => ({
   statusCode,
@@ -30,7 +32,43 @@ const limitMessage = (reason: UsageLimitError['reason']): string => {
   return '아직 앞에서 한 말을 생각하고 있어. 잠깐 뒤에 다시 말해줘! 🐹'
 }
 
+// Remaining chats for one installation. Reads counters only: no AI call, no usage charged.
+const usageHandler = async (event: APIGatewayProxyEventV2, context: Context) => {
+  const config = loadConfig()
+  try {
+    const request = parseUsageRequest(event.queryStringParameters)
+    const hashSecret = await getSecret(config.hashSecretParameterName)
+    const now = new Date()
+    const usage = await readUsage(hashInstallationId(request.installationId, hashSecret), now, config)
+    const resets = resetTimes(now)
+    return json(200, {
+      daily: {
+        limit: config.dailyRequestLimit,
+        remaining: Math.max(0, config.dailyRequestLimit - usage.dailyUsed),
+        resetsAt: resets.daily
+      },
+      monthly: {
+        limit: config.monthlyRequestLimit,
+        remaining: Math.max(0, config.monthlyRequestLimit - usage.monthlyUsed),
+        resetsAt: resets.monthly
+      },
+      budgetPaused: usage.budgetPaused
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('요청')) {
+      return json(400, { error: 'INVALID_REQUEST' })
+    }
+    console.error('usage request failed', {
+      requestId: context.awsRequestId,
+      errorType: error instanceof Error ? error.name : 'UnknownError',
+      errorMessage: error instanceof Error ? error.message.slice(0, 200) : undefined
+    })
+    return json(503, { error: 'SERVICE_UNAVAILABLE' })
+  }
+}
+
 export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
+  if (event.routeKey === 'GET /v1/usage') return usageHandler(event, context)
   if (event.requestContext.http.method !== 'POST') return json(405, { error: 'METHOD_NOT_ALLOWED' })
   const config = loadConfig()
   let reservation: Awaited<ReturnType<typeof reserveUsage>> | null = null
@@ -78,7 +116,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     }
     console.error('chat request failed', {
       requestId: context.awsRequestId,
-      errorType: error instanceof Error ? error.name : 'UnknownError'
+      errorType: error instanceof Error ? error.name : 'UnknownError',
+      // Our own error messages carry status codes only, never chat content.
+      errorMessage: error instanceof Error ? error.message.slice(0, 200) : undefined
     })
     return json(503, { error: 'SERVICE_UNAVAILABLE', reply: '지금은 대답하기가 조금 어려워. 잠시 후에 다시 말 걸어줘! 🐹' })
   } finally {
