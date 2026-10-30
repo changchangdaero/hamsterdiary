@@ -14,6 +14,7 @@ locals {
     AI_BASE_URL                   = var.ai_base_url
     AI_MODEL                      = var.ai_model
     AI_REASONING_EFFORT           = var.ai_reasoning_effort
+    AI_MAX_COMPLETION_TOKENS      = tostring(var.ai_max_completion_tokens)
     DAILY_REQUEST_LIMIT           = tostring(var.daily_request_limit)
     MONTHLY_REQUEST_LIMIT         = tostring(var.monthly_request_limit)
     MONTHLY_BUDGET_KRW            = tostring(var.monthly_budget_krw)

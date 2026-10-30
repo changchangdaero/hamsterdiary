@@ -55,11 +55,22 @@ variable "ai_reasoning_effort" {
   }
 }
 
+variable "ai_max_completion_tokens" {
+  description = "Reply token cap; keeps speech-bubble replies short (about 1.3 Korean characters per token)"
+  type        = number
+  default     = 160
+
+  validation {
+    condition     = var.ai_max_completion_tokens >= 32 && var.ai_max_completion_tokens <= 1000 && floor(var.ai_max_completion_tokens) == var.ai_max_completion_tokens
+    error_message = "ai_max_completion_tokens must be a whole number from 32 to 1000."
+  }
+}
+
 # Usage limits per installation. Change these in terraform.tfvars and apply.
 variable "daily_request_limit" {
   description = "AI chats one installation may send per day"
   type        = number
-  default     = 10
+  default     = 30
 
   validation {
     condition     = var.daily_request_limit >= 1 && floor(var.daily_request_limit) == var.daily_request_limit
@@ -70,7 +81,7 @@ variable "daily_request_limit" {
 variable "monthly_request_limit" {
   description = "AI chats one installation may send per month"
   type        = number
-  default     = 60
+  default     = 300
 
   validation {
     condition     = floor(var.monthly_request_limit) == var.monthly_request_limit && var.monthly_request_limit >= var.daily_request_limit

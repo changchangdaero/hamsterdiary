@@ -28,6 +28,7 @@ export interface AppConfig {
   aiModel: string
   // Reasoning models spend completion tokens on hidden thinking; empty means the model default.
   aiReasoningEffort: string
+  maxCompletionTokens: number
   dailyRequestLimit: number
   monthlyRequestLimit: number
   monthlyBudgetKrw: number
@@ -48,8 +49,9 @@ export const loadConfig = (): AppConfig => ({
   aiBaseUrl: process.env.AI_BASE_URL?.trim() || 'https://api.openai.com/v1',
   aiModel: process.env.AI_MODEL?.trim() || 'gpt-5-nano',
   aiReasoningEffort: process.env.AI_REASONING_EFFORT?.trim() ?? '',
-  dailyRequestLimit: integer('DAILY_REQUEST_LIMIT', 10),
-  monthlyRequestLimit: integer('MONTHLY_REQUEST_LIMIT', 60),
+  maxCompletionTokens: integer('AI_MAX_COMPLETION_TOKENS', 160),
+  dailyRequestLimit: integer('DAILY_REQUEST_LIMIT', 30),
+  monthlyRequestLimit: integer('MONTHLY_REQUEST_LIMIT', 300),
   monthlyBudgetKrw: integer('MONTHLY_BUDGET_KRW', 30_000),
   budgetCutoffKrw: integer('BUDGET_CUTOFF_KRW', 27_000),
   usdKrwRate: number('USD_KRW_RATE', 1_500),
