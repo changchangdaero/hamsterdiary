@@ -109,14 +109,16 @@ export const reserveUsage = async (
             Update: {
               TableName: config.tableName,
               Key: { pk: 'GLOBAL', sk: `MONTH#${month}` },
-              UpdateExpression: 'SET requestCount = if_not_exists(requestCount, :zero) + :one, reservedCostMicroUsd = if_not_exists(reservedCostMicroUsd, :zero) + :reserved, expiresAt = :ttl',
-              ConditionExpression: '(attribute_not_exists(estimatedCostMicroUsd) AND attribute_not_exists(reservedCostMicroUsd)) OR (attribute_not_exists(estimatedCostMicroUsd) AND reservedCostMicroUsd + :reserved <= :cutoff) OR (attribute_not_exists(reservedCostMicroUsd) AND estimatedCostMicroUsd + :reserved <= :cutoff) OR estimatedCostMicroUsd + reservedCostMicroUsd + :reserved <= :cutoff',
+              UpdateExpression: 'SET requestCount = if_not_exists(requestCount, :zero) + :one, reservedCostMicroUsd = if_not_exists(reservedCostMicroUsd, :zero) + :reserved, committedMicroUsd = if_not_exists(committedMicroUsd, :zero) + :reserved, expiresAt = :ttl',
+              // Condition expressions cannot do arithmetic, so the budget check compares the
+              // running estimated + reserved total against the cutoff minus this reservation.
+              ConditionExpression: 'attribute_not_exists(committedMicroUsd) OR committedMicroUsd <= :maxCommittedBefore',
               ExpressionAttributeValues: {
                 ':zero': 0,
                 ':one': 1,
                 ':ttl': ttl,
                 ':reserved': config.maxRequestCostMicroUsd,
-                ':cutoff': budgetCutoffMicroUsd(config)
+                ':maxCommittedBefore': budgetCutoffMicroUsd(config) - config.maxRequestCostMicroUsd
               }
             }
           }
@@ -191,7 +193,7 @@ export const cancelReservation = async (
           Update: {
             TableName: config.tableName,
             Key: { pk: 'GLOBAL', sk: `MONTH#${reservation.month}` },
-            UpdateExpression: 'SET requestCount = requestCount - :one, reservedCostMicroUsd = reservedCostMicroUsd - :reserved',
+            UpdateExpression: 'SET requestCount = requestCount - :one, reservedCostMicroUsd = reservedCostMicroUsd - :reserved, committedMicroUsd = committedMicroUsd - :reserved',
             ConditionExpression: 'requestCount >= :one AND reservedCostMicroUsd >= :reserved',
             ExpressionAttributeValues: {
               ':one': 1,
@@ -213,13 +215,19 @@ export const recordUsage = async (
   config: AppConfig
 ): Promise<number> => {
   const { month } = periods(now)
+  // DynamoDB rejects attribute values an expression does not use, so each update gets its own set.
   const values = {
     ':zero': 0,
     ':input': inputTokens,
     ':output': outputTokens,
     ':cost': costMicroUsd,
-    ':reserved': config.maxRequestCostMicroUsd,
     ':updatedAt': now.toISOString()
+  }
+  // Update expressions allow one operator per operand, so the swap is precomputed.
+  const globalValues = {
+    ...values,
+    ':reserved': config.maxRequestCostMicroUsd,
+    ':committedDelta': costMicroUsd - config.maxRequestCostMicroUsd
   }
   await Promise.all([
     documentClient.send(
@@ -234,8 +242,8 @@ export const recordUsage = async (
       new UpdateCommand({
         TableName: config.tableName,
         Key: { pk: 'GLOBAL', sk: `MONTH#${month}` },
-        UpdateExpression: 'SET inputTokens = if_not_exists(inputTokens, :zero) + :input, outputTokens = if_not_exists(outputTokens, :zero) + :output, estimatedCostMicroUsd = if_not_exists(estimatedCostMicroUsd, :zero) + :cost, reservedCostMicroUsd = if_not_exists(reservedCostMicroUsd, :zero) - :reserved, updatedAt = :updatedAt',
-        ExpressionAttributeValues: values
+        UpdateExpression: 'SET inputTokens = if_not_exists(inputTokens, :zero) + :input, outputTokens = if_not_exists(outputTokens, :zero) + :output, estimatedCostMicroUsd = if_not_exists(estimatedCostMicroUsd, :zero) + :cost, reservedCostMicroUsd = if_not_exists(reservedCostMicroUsd, :zero) - :reserved, committedMicroUsd = if_not_exists(committedMicroUsd, :zero) + :committedDelta, updatedAt = :updatedAt',
+        ExpressionAttributeValues: globalValues
       })
     )
   ])

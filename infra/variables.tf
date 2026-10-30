@@ -44,6 +44,17 @@ variable "ai_model" {
   default     = "gpt-5-nano"
 }
 
+variable "ai_reasoning_effort" {
+  description = "reasoning_effort sent to reasoning models; empty string omits it for models that reject it"
+  type        = string
+  default     = "minimal"
+
+  validation {
+    condition     = contains(["", "minimal", "low", "medium", "high"], var.ai_reasoning_effort)
+    error_message = "ai_reasoning_effort must be empty, minimal, low, medium, or high."
+  }
+}
+
 # Usage limits per installation. Change these in terraform.tfvars and apply.
 variable "daily_request_limit" {
   description = "AI chats one installation may send per day"

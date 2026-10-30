@@ -78,7 +78,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     }
     console.error('chat request failed', {
       requestId: context.awsRequestId,
-      errorType: error instanceof Error ? error.name : 'UnknownError'
+      errorType: error instanceof Error ? error.name : 'UnknownError',
+      // Our own error messages carry status codes only, never chat content.
+      errorMessage: error instanceof Error ? error.message.slice(0, 200) : undefined
     })
     return json(503, { error: 'SERVICE_UNAVAILABLE', reply: '지금은 대답하기가 조금 어려워. 잠시 후에 다시 말 걸어줘! 🐹' })
   } finally {

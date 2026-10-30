@@ -13,6 +13,7 @@ locals {
     HASH_SECRET_PARAMETER_NAME    = aws_ssm_parameter.installation_hash_secret.name
     AI_BASE_URL                   = var.ai_base_url
     AI_MODEL                      = var.ai_model
+    AI_REASONING_EFFORT           = var.ai_reasoning_effort
     DAILY_REQUEST_LIMIT           = tostring(var.daily_request_limit)
     MONTHLY_REQUEST_LIMIT         = tostring(var.monthly_request_limit)
     MONTHLY_BUDGET_KRW            = tostring(var.monthly_budget_krw)

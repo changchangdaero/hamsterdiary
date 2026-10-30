@@ -35,7 +35,9 @@ export const requestAiReply = async (
           ...history,
           { role: 'user', content: message }
         ],
-        max_completion_tokens: 300
+        max_completion_tokens: 300,
+        // Without this, gpt-5 models can use the whole budget thinking and return no text.
+        ...(config.aiReasoningEffort ? { reasoning_effort: config.aiReasoningEffort } : {})
       })
     })
     if (!response.ok) {

@@ -11,6 +11,7 @@ budget_cutoff_krw  = 27000
 
 # Conservative operational assumptions. Update these when provider pricing changes.
 ai_model                      = "gpt-5-nano"
+ai_reasoning_effort           = "minimal"
 usd_krw_rate                  = 1500
 input_usd_per_million_tokens  = 0.05
 output_usd_per_million_tokens = 0.4
