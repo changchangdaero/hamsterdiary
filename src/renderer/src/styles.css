@@ -886,6 +886,13 @@ dd {
   margin-top: 2px;
 }
 
+/* "오늘 AI 대화 3번 더 할 수 있어" once few chats are left today. */
+.pet-inline-usage {
+  margin: -4px 0 8px;
+  color: #b0763f;
+  font-size: 11px;
+}
+
 /* Turns to the next page of a long reply. */
 .pet-inline-input button.pet-inline-next {
   margin-left: 4px;
@@ -2891,6 +2898,94 @@ dd {
 
 .api-key-settings button.danger {
   background: var(--pixel-red);
+}
+
+/* Settings "대화" tab: remaining AI chats today and this month. */
+.usage-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.usage-meter-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.usage-meter-heading strong {
+  font-size: 1.35rem;
+}
+
+.usage-meter-heading small {
+  color: var(--pixel-brown);
+  font-size: 0.8rem;
+}
+
+.usage-meter-bar {
+  height: 16px;
+  margin-top: 6px;
+  border: var(--pixel-border);
+  background: #efe3c4;
+  box-shadow: inset 2px 2px 0 rgb(0 0 0 / 12%);
+}
+
+.usage-meter-bar span {
+  display: block;
+  height: 100%;
+  background: var(--pixel-green);
+  transition: width 300ms ease;
+}
+
+.usage-meter.is-low .usage-meter-bar span {
+  background: var(--pixel-orange);
+}
+
+.usage-meter.is-empty .usage-meter-heading strong {
+  color: #9b8f80;
+}
+
+.settings-document .usage-meter p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+}
+
+.settings-document .usage-paused {
+  border: 2px solid var(--pixel-ink);
+  padding: 8px 10px;
+  background: #f6dcc8;
+  font-size: 0.85rem;
+}
+
+.settings-document .usage-note {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.usage-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.usage-privacy {
+  margin-top: 16px;
+  border-top: 2px dashed #d8c7a3;
+  padding-top: 10px;
+}
+
+.settings-document .usage-privacy p {
+  margin: 2px 0;
+  font-size: 0.8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-meter-bar span {
+    transition: none;
+  }
 }
 
 @media (max-width: 660px) {

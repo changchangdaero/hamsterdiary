@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { randomUUID } from 'node:crypto'
-import type { HamiChatRequest, HamiChatResponse } from '../../shared/types/chat'
+import type { HamiChatRequest, HamiChatResponse, HamiUsage } from '../../shared/types/chat'
 import { runtimeStore } from '../stores'
 
 const CHAT_API_URL = (
@@ -66,6 +66,31 @@ export const converseWithHami = async (
       return { ...body, limited: response.status === 429 }
     }
     throw new Error(`[HAMI_CHAT_FAILED] AI 대화 서버 오류: ${response.status}`)
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+const USAGE_TIMEOUT_MS = 10_000
+
+// Remaining chats for this installation. Reading it does not use a chat.
+export const getHamiUsage = async (): Promise<HamiUsage> => {
+  if (!CHAT_API_URL) {
+    throw new Error('[HAMI_CHAT_NOT_CONFIGURED] AI 대화 서버가 아직 연결되지 않았어.')
+  }
+  // The usage endpoint sits next to the chat endpoint: .../v1/chat -> .../v1/usage
+  const url = new URL('usage', CHAT_API_URL)
+  url.searchParams.set('installationId', installationId())
+  url.searchParams.set('appVersion', app.getVersion())
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), USAGE_TIMEOUT_MS)
+  try {
+    const response = await fetch(url, { signal: controller.signal })
+    const body = (await response.json().catch(() => null)) as HamiUsage | null
+    if (!response.ok || !body?.daily || !body.monthly) {
+      throw new Error(`[HAMI_USAGE_FAILED] 사용량을 불러오지 못했어: ${response.status}`)
+    }
+    return body
   } finally {
     clearTimeout(timeout)
   }

@@ -38,6 +38,8 @@ type PendingAction =
 const FALLBACK_MESSAGE = '지금은 대답하기가 조금 어려워. 잠시 후에 다시 말 걸어줘! 🐹'
 const DEFAULT_REMINDER_MINUTES = 10
 const MAX_CANDIDATES = 3
+// Show how many chats are left once today's count is this low.
+const LOW_USAGE_HINT_AT = 5
 
 const errorText = (error: unknown): string =>
   error instanceof Error && error.message
@@ -53,6 +55,7 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
   const [pending, setPending] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [showCalendarLink, setShowCalendarLink] = useState(false)
+  const [usageHint, setUsageHint] = useState('')
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -87,6 +90,14 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
         history: history.slice(-5)
       })
       say(result.reply)
+      const left = result.remainingDailyUsage
+      setUsageHint(
+        !result.limited && left !== undefined && left <= LOW_USAGE_HINT_AT
+          ? left === 0
+            ? '오늘 AI 대화는 이게 마지막이었어. 일정 말은 계속 할 수 있어!'
+            : `오늘 AI 대화 ${left}번 더 할 수 있어.`
+          : ''
+      )
       setHistory((current) => [
         ...current,
         { role: 'user', content: message } as const,
@@ -175,6 +186,7 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
     setText('')
     setPendingAction(null)
     setShowCalendarLink(false)
+    setUsageHint('')
     const intent = detectScheduleIntent(message)
     if (intent) await handleScheduleIntent(intent, message)
     else await askHami(message)
@@ -311,6 +323,7 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
             </button>
           )}
         </p>
+        {usageHint && !pending && <p className="pet-inline-usage">{usageHint}</p>}
         {renderPendingAction()}
         {showCalendarLink && !pending && (
           <button

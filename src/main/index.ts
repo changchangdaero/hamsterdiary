@@ -822,7 +822,10 @@ if (!hasSingleInstanceLock) {
       scheduleDiaryReady: markScheduleDiaryReady,
       schedulesChanged: broadcastSchedulesChanged
     })
-    registerHamiChatIpc({ getPetWindow: () => petWindow })
+    registerHamiChatIpc({
+      getPetWindow: () => petWindow,
+      getUsageWindows: () => [petWindow, settingsWindow]
+    })
     registerReminderIpc({
       getTrustedWindows: () => [
         mainWindow,

@@ -8,6 +8,20 @@ export interface HamiChatRequest {
   history: ChatTurn[]
 }
 
+export interface HamiUsagePeriod {
+  limit: number
+  remaining: number
+  // When the period refills (local midnight / first of next month), as an ISO string.
+  resetsAt: string
+}
+
+export interface HamiUsage {
+  daily: HamiUsagePeriod
+  monthly: HamiUsagePeriod
+  // The whole-service monthly AI budget is spent; chat resumes next month.
+  budgetPaused: boolean
+}
+
 export interface HamiChatResponse {
   reply: string
   remainingDailyUsage?: number

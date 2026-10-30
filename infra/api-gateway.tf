@@ -17,6 +17,13 @@ resource "aws_apigatewayv2_route" "chat" {
   target    = "integrations/${aws_apigatewayv2_integration.chat.id}"
 }
 
+# Read-only remaining-chat counters for the settings screen; never calls the AI.
+resource "aws_apigatewayv2_route" "usage" {
+  api_id    = aws_apigatewayv2_api.chat.id
+  route_key = "GET /v1/usage"
+  target    = "integrations/${aws_apigatewayv2_integration.chat.id}"
+}
+
 resource "aws_apigatewayv2_stage" "prod" {
   api_id      = aws_apigatewayv2_api.chat.id
   name        = "$default"

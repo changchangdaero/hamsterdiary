@@ -31,10 +31,24 @@ interface Reservation {
   month: string
 }
 
-const periods = (now: Date): { day: string; month: string } => ({
-  day: now.toISOString().slice(0, 10),
-  month: now.toISOString().slice(0, 7)
-})
+// Days and months follow Korea time (UTC+9, no daylight saving), so limits refill at local midnight.
+const KST_OFFSET_MS = 9 * 60 * 60 * 1_000
+
+export const periods = (now: Date): { day: string; month: string } => {
+  const local = new Date(now.getTime() + KST_OFFSET_MS).toISOString()
+  return { day: local.slice(0, 10), month: local.slice(0, 7) }
+}
+
+// The next local midnight and the first instant of next local month, as UTC ISO strings.
+export const resetTimes = (now: Date): { daily: string; monthly: string } => {
+  const local = new Date(now.getTime() + KST_OFFSET_MS)
+  const nextDay = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + 1)
+  const nextMonth = Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + 1, 1)
+  return {
+    daily: new Date(nextDay - KST_OFFSET_MS).toISOString(),
+    monthly: new Date(nextMonth - KST_OFFSET_MS).toISOString()
+  }
+}
 
 const expiresAt = (now: Date): number => {
   const expiry = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 3, 1))
@@ -265,4 +279,42 @@ export const releaseLock = async (lockKey: string, config: AppConfig): Promise<v
       Key: { pk: lockKey, sk: 'ACTIVE' }
     })
   )
+}
+
+export interface UsageSnapshot {
+  dailyUsed: number
+  monthlyUsed: number
+  // The whole-service monthly budget is spent; nobody can chat until next month.
+  budgetPaused: boolean
+}
+
+export const readUsage = async (
+  installationHash: string,
+  now: Date,
+  config: AppConfig
+): Promise<UsageSnapshot> => {
+  const { day, month } = periods(now)
+  const result = await documentClient.send(
+    new BatchGetCommand({
+      RequestItems: {
+        [config.tableName]: {
+          ConsistentRead: true,
+          Keys: [
+            { pk: `INSTALL#${installationHash}`, sk: `DAY#${day}` },
+            { pk: `INSTALL#${installationHash}`, sk: `MONTH#${month}` },
+            { pk: 'GLOBAL', sk: `MONTH#${month}` }
+          ],
+          ProjectionExpression: 'pk, sk, requestCount, committedMicroUsd'
+        }
+      }
+    })
+  )
+  const items = result.Responses?.[config.tableName] ?? []
+  const find = (pk: string, sk: string) => items.find((item) => item.pk === pk && item.sk === sk)
+  const committed = Number(find('GLOBAL', `MONTH#${month}`)?.committedMicroUsd ?? 0)
+  return {
+    dailyUsed: Number(find(`INSTALL#${installationHash}`, `DAY#${day}`)?.requestCount ?? 0),
+    monthlyUsed: Number(find(`INSTALL#${installationHash}`, `MONTH#${month}`)?.requestCount ?? 0),
+    budgetPaused: committed > budgetCutoffMicroUsd(config) - config.maxRequestCostMicroUsd
+  }
 }

@@ -19,6 +19,7 @@ import {
 import type { SettingsSection } from '../../../shared/types/foundation'
 import { IDLE_ACTIONS, PET_STATE_CLIPS } from '../petIdleBehaviors'
 import PetClipPreview from '../components/PetClipPreview'
+import HamiUsagePanel from '../components/HamiUsagePanel'
 
 const ACTIVITY_LEVELS: Array<{ value: PetActivityLevel; label: string; hint: string }> = [
   { value: 'calm', label: '차분', hint: '45~90초마다' },
@@ -171,11 +172,16 @@ function SettingsWindow(): React.JSX.Element {
         <div className="setting-card-heading">
           <div>
             <h2>햄이 AI 대화</h2>
-            <p>별도의 계정이나 API 키 없이 하루 10회, 한 달 60회까지 대화할 수 있어.</p>
-            <p>대화창에 입력한 내용과 최근 대화 일부만 외부 AI로 전송돼.</p>
-            <p>일정, 할 일, 일기와 뽀모도로 기록은 전송되지 않고 이 컴퓨터에만 저장돼.</p>
+            <p>별도의 계정이나 API 키 없이 무료로 대화할 수 있어.</p>
           </div>
           <strong className="key-status is-set">무료 제공</strong>
+        </div>
+        {/* Mounted only while the tab is open, so opening it always shows fresh counts. */}
+        {activeTab === 'conversation' && <HamiUsagePanel />}
+        <div className="usage-privacy">
+          <p>대화창에 입력한 수다와 최근 대화 일부만 외부 AI로 전송돼.</p>
+          <p>하루 계획은 [햄이에게 보여주기]를 누를 때만 그 내용이 전송돼.</p>
+          <p>일정·할 일·일기·뽀모도로 기록과 일정 관련 말은 이 컴퓨터에서만 처리돼.</p>
         </div>
       </section>
 
