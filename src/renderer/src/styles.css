@@ -886,6 +886,63 @@ dd {
   margin-top: 2px;
 }
 
+/* Turns to the next page of a long reply. */
+.pet-inline-input button.pet-inline-next {
+  margin-left: 4px;
+  padding: 0 4px;
+  color: #b0763f;
+  font-size: 0.75em;
+  vertical-align: baseline;
+}
+
+/* Confirmation card for a schedule said in the chat. Nothing is saved until it is confirmed. */
+.pet-schedule-card {
+  margin: 0 0 8px;
+  border: 1px solid #eadcca;
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: #fff3df;
+}
+
+.pet-schedule-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.pet-schedule-card-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.pet-inline-input .pet-schedule-card-actions button {
+  border: 1px solid #d9c2a6;
+  padding: 4px 12px;
+}
+
+.pet-inline-input button.pet-schedule-choice {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+  border: 1px solid #eadcca;
+  padding: 5px 8px;
+  background: #fffaf0;
+  text-align: left;
+}
+
+.pet-inline-input button.pet-schedule-chat-instead {
+  display: block;
+  margin: 4px 0 6px auto;
+  padding: 0;
+  color: #9a7d6c;
+  font-size: 11px;
+  text-decoration: underline;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .speech-bubble,
   .speech-bubble.is-closing {
@@ -3313,13 +3370,28 @@ dd {
   animation: typewriter-cursor-blink 520ms steps(1, end) infinite;
 }
 
+/* Shown when a long message has another page; clicking the bubble turns to it. */
+.speech-next-page {
+  display: inline-block;
+  margin-left: 4px;
+  color: #b0763f;
+  font-size: 0.75em;
+  animation: speech-next-page-nudge 900ms ease-in-out infinite;
+}
+
+@keyframes speech-next-page-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+
 @keyframes typewriter-cursor-blink {
   0%, 48% { opacity: 1; }
   49%, 100% { opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .typewriter-cursor {
+  .typewriter-cursor,
+  .speech-next-page {
     animation: none;
   }
 }

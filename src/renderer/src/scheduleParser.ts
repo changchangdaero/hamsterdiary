@@ -151,6 +151,9 @@ const parseTime = (text: string): TimeParseResult => {
 
     if (period === '오후' || period === '저녁' || period === '점심') {
       if (hour < 12) hour += 12
+    } else if (!period && hour >= 1 && hour <= 6) {
+      // "3시 병원" almost always means the afternoon.
+      hour += 12
     } else if (
       (period === '오전' || period === '아침' || period === '새벽') &&
       hour === 12

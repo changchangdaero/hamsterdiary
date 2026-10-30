@@ -29,6 +29,7 @@ import {
   type PetIdleActionId
 } from '../petIdleBehaviors'
 import { usePetClipFrame } from '../hooks/usePetClipFrame'
+import { splitSpeechPages } from '../speechPages'
 import {
   DEFAULT_PET_BEHAVIOR_SETTINGS,
   type PetBehaviorSettings
@@ -42,6 +43,9 @@ const BUBBLE_EXIT_DURATION = 160
 const WAKE_BUBBLE_DURATION = 1_000
 const WAKE_STARTLE_DURATION = 500
 const COMPLETION_POSE_DURATION = 1_800
+// A page of a long message stays up this long per character before the next page.
+const PAGE_READ_MS_PER_CHAR = 90
+const PAGE_MIN_READ_MS = 2_200
 // Every sleep frame shares one body; only the Z glyphs change.
 const SLEEP_FRAMES: PetVisualFrame[] = [
   'sleep0',
@@ -129,6 +133,7 @@ function PetWindow(): React.JSX.Element {
   const [message, setMessage] = useState<ResolvedPetMessage | null>(null)
   const [displayedText, setDisplayedText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [hasMorePages, setHasMorePages] = useState(false)
   const [isBubbleClosing, setIsBubbleClosing] = useState(false)
   const [idlePose, setIdlePose] = useState<PetEmotion | null>(null)
   const [wakePhase, setWakePhase] = useState<'bubble' | 'startle' | null>(null)
@@ -175,6 +180,8 @@ function PetWindow(): React.JSX.Element {
   const messageSequenceRef = useRef(0)
   const currentMessageRef = useRef<ResolvedPetMessage | null>(null)
   const graphemesRef = useRef<string[]>([])
+  const pagesRef = useRef<string[]>([])
+  const pageIndexRef = useRef(0)
   const messageVisibleRef = useRef(false)
   const idlePoseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const completionPoseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -231,6 +238,7 @@ function PetWindow(): React.JSX.Element {
     messageSequenceRef.current += 1
     clearMessageTimers()
     setIsTyping(false)
+    setHasMorePages(false)
     currentMessageRef.current = null
 
     if (messageVisibleRef.current && animate) {
@@ -260,27 +268,30 @@ function PetWindow(): React.JSX.Element {
     setIsTyping(false)
     setEmotion(activeMessage.finalEmotion)
     setAnimationKey((key) => key + 1)
-    messageHideTimerRef.current = setTimeout(
-      () => closeMessage(true),
-      activeMessage.visibleDuration
-    )
+    const hasNextPage = pageIndexRef.current < pagesRef.current.length - 1
+    setHasMorePages(hasNextPage)
+    messageHideTimerRef.current = hasNextPage
+      ? setTimeout(
+          showNextPage,
+          Math.max(PAGE_MIN_READ_MS, graphemes.length * PAGE_READ_MS_PER_CHAR)
+        )
+      : setTimeout(() => closeMessage(true), activeMessage.visibleDuration)
   }
 
-  const startMessage = (nextMessage: ResolvedPetMessage): void => {
+  // Types one page of the current message into the bubble.
+  const typePage = (activeMessage: ResolvedPetMessage, pageIndex: number): void => {
     messageSequenceRef.current += 1
     const sequence = messageSequenceRef.current
-    clearMessageTimers()
-    const graphemes = segmentGraphemes(nextMessage.text)
-    currentMessageRef.current = nextMessage
-    messageVisibleRef.current = true
+    clearTimer(typewriterTimerRef)
+    clearTimer(messageHideTimerRef)
+    pageIndexRef.current = pageIndex
+    const graphemes = segmentGraphemes(pagesRef.current[pageIndex] ?? '')
     graphemesRef.current = graphemes
-    setMessage(nextMessage)
     setDisplayedText('')
-    setIsBubbleClosing(false)
-    setIdlePose(null)
+    setHasMorePages(false)
     setIsTyping(graphemes.length > 0)
     // Sad messages are spoken with a still, sad face instead of a flapping mouth.
-    setEmotion(nextMessage.finalEmotion === 'sad' ? 'sad' : 'talking')
+    setEmotion(activeMessage.finalEmotion === 'sad' ? 'sad' : 'talking')
     setAnimationKey((key) => key + 1)
 
     const typeNext = (index: number): void => {
@@ -288,7 +299,7 @@ function PetWindow(): React.JSX.Element {
         return
       }
       if (index >= graphemes.length) {
-        finishTyping(nextMessage, graphemes)
+        finishTyping(activeMessage, graphemes)
         return
       }
 
@@ -298,10 +309,30 @@ function PetWindow(): React.JSX.Element {
         }
         setDisplayedText(graphemes.slice(0, index + 1).join(''))
         typeNext(index + 1)
-      }, getTypingDelay(graphemes[index], nextMessage.typingSpeed))
+      }, getTypingDelay(graphemes[index], activeMessage.typingSpeed))
     }
 
     typeNext(0)
+  }
+
+  const startMessage = (nextMessage: ResolvedPetMessage): void => {
+    clearMessageTimers()
+    currentMessageRef.current = nextMessage
+    messageVisibleRef.current = true
+    // Long replies are split so the bubble never grows past the window.
+    pagesRef.current = splitSpeechPages(nextMessage.text)
+    setMessage(nextMessage)
+    setIsBubbleClosing(false)
+    setIdlePose(null)
+    typePage(nextMessage, 0)
+  }
+
+  const showNextPage = (): void => {
+    const activeMessage = currentMessageRef.current
+    if (!activeMessage || pageIndexRef.current >= pagesRef.current.length - 1) {
+      return
+    }
+    typePage(activeMessage, pageIndexRef.current + 1)
   }
 
   const completeTyping = (): void => {
@@ -330,6 +361,7 @@ function PetWindow(): React.JSX.Element {
     setMessage(null)
     setDisplayedText('')
     setIsTyping(false)
+    setHasMorePages(false)
     setIsBubbleClosing(false)
     setIdlePose(null)
     setEmotion(nextEmotion)
@@ -785,7 +817,9 @@ function PetWindow(): React.JSX.Element {
           text={displayedText}
           isClosing={isBubbleClosing}
           isTyping={isTyping}
+          hasMorePages={hasMorePages}
           onCompleteTyping={completeTyping}
+          onNextPage={showNextPage}
         />
       )}
       {scheduleInputPlacement && (
