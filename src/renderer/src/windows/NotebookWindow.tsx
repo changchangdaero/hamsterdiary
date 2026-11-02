@@ -1,4 +1,4 @@
-// 할 일·일기·계획 탭을 한 창 안에서 전환하는 노트 창입니다.
+// 할 일·하루 노트 탭을 한 창 안에서 전환하는 노트 창입니다.
 import { useEffect, useState } from 'react'
 import {
   NOTEBOOK_VIEWS,
@@ -7,7 +7,6 @@ import {
 import { PET_FRAME_IMAGES } from '../petAssets'
 import { DATE_KEY_PATTERN, toDateKey } from '../dateKey'
 import TodoView from '../views/TodoView'
-import DiaryView from '../views/DiaryView'
 import PlanView from '../views/PlanView'
 
 const HEADERS: Record<NotebookView, { kicker: string; title: string; image: string; alt: string }> = {
@@ -17,24 +16,17 @@ const HEADERS: Record<NotebookView, { kicker: string; title: string; image: stri
     image: PET_FRAME_IMAGES['thumbs-up'],
     alt: '응원하는 햄이'
   },
-  diary: {
-    kicker: 'HAMSTER DIARY',
-    title: '하루 한 장 일기',
-    image: PET_FRAME_IMAGES.happy,
-    alt: '일기를 응원하는 햄이'
-  },
   plan: {
-    kicker: 'DAILY PLAN',
-    title: '하루 계획 노트',
+    kicker: 'DAILY NOTE',
+    title: '하루 노트',
     image: PET_FRAME_IMAGES.happy,
-    alt: '계획을 응원하는 햄이'
+    alt: '노트를 응원하는 햄이'
   }
 }
 
 const TAB_LABELS: Record<NotebookView, string> = {
   todos: '할 일',
-  diary: '일기',
-  plan: '계획'
+  plan: '하루 노트'
 }
 
 const isNotebookView = (value: unknown): value is NotebookView =>
@@ -47,7 +39,7 @@ function NotebookWindow(): React.JSX.Element {
   const [view, setView] = useState<NotebookView>(
     isNotebookView(requestedView) ? requestedView : 'plan'
   )
-  // Diary and plan share one selected date so switching tabs keeps the same day.
+  // Kept here so going to the todo tab and back stays on the same day.
   const [date, setDate] = useState(
     requestedDate && DATE_KEY_PATTERN.test(requestedDate)
       ? requestedDate
@@ -79,7 +71,7 @@ function NotebookWindow(): React.JSX.Element {
         <div>
           <p className="pixel-kicker">{header.kicker}</p>
           <h1>{header.title}</h1>
-          <nav className="todo-tabs" aria-label="일정, 할 일, 일기, 계획 화면">
+          <nav className="todo-tabs" aria-label="일정, 할 일, 하루 노트 화면">
             <button type="button" onClick={() => void window.desktopPetAPI.openScheduleDiary()}>
               일정
             </button>
@@ -99,7 +91,6 @@ function NotebookWindow(): React.JSX.Element {
 
       <div className="notebook-body">
         {view === 'todos' && <TodoView />}
-        {view === 'diary' && <DiaryView date={date} onDateChange={changeDate} />}
         {view === 'plan' && <PlanView date={date} onDateChange={changeDate} />}
       </div>
 

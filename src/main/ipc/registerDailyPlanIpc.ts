@@ -17,7 +17,8 @@ interface Options {
   dailyPlanChanged: (dates: string[]) => void
 }
 
-const MAX_PLAN_LENGTH = 20_000
+// Room for a full note plus a merged old diary entry.
+const MAX_PLAN_LENGTH = 40_000
 const planKey = (date: string): string => `plan:${date}`
 const listDates = (): string[] =>
   Object.keys(dailyPlanStore.store)

@@ -17,6 +17,7 @@ export const settingsStore = new Store<SettingsStoreData>({
     pomodoro: DEFAULT_POMODORO_SETTINGS,
     petBehavior: DEFAULT_PET_BEHAVIOR_SETTINGS,
     chat: DEFAULT_CHAT_SETTINGS,
-    geminiPlanNoticeSeen: false
+    geminiPlanNoticeSeen: false,
+    diaryMergedIntoNotes: false
   }
 })

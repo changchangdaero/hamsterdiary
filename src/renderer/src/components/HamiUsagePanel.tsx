@@ -6,9 +6,9 @@ import type { HamiUsage, HamiUsagePeriod } from '../../../shared/types/chat'
 const LOW_SHARE = 0.2
 
 const formatReset = (period: 'daily' | 'monthly', resetsAt: string): string => {
-  if (period === 'daily') return '자정에 다시 채워져요'
+  if (period === 'daily') return '자정에 다시 채워져'
   const date = new Date(resetsAt)
-  return `${date.getMonth() + 1}월 ${date.getDate()}일에 다시 채워져요`
+  return `${date.getMonth() + 1}월 ${date.getDate()}일에 다시 채워져`
 }
 
 const formatChecked = (checkedAt: Date): string =>
@@ -45,7 +45,7 @@ function UsageMeter({
       </div>
       <p>
         {usage.remaining === 0
-          ? `다 썼어요. ${formatReset(period, usage.resetsAt)}`
+          ? `다 썼어. ${formatReset(period, usage.resetsAt)}`
           : formatReset(period, usage.resetsAt)}
       </p>
     </div>
@@ -68,8 +68,8 @@ function HamiUsagePanel(): React.JSX.Element {
       const message = loadError instanceof Error ? loadError.message : ''
       setError(
         message.includes('HAMI_CHAT_NOT_CONFIGURED')
-          ? 'AI 대화 서버가 아직 연결되지 않았어요.'
-          : '사용량을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'
+          ? 'AI 대화 서버가 아직 연결되지 않았어.'
+          : '사용량을 불러오지 못했어. 인터넷 연결을 확인하고 다시 눌러 줘.'
       )
     } finally {
       setLoading(false)
@@ -88,7 +88,7 @@ function HamiUsagePanel(): React.JSX.Element {
           <UsageMeter label="이번 달 남은 대화" period="monthly" usage={usage.monthly} />
           {usage.budgetPaused && (
             <p className="usage-paused">
-              이번 달 햄이 AI 대화 예산을 다 써서 다음 달까지 쉬어요. 일정·할 일·일기·뽀모도로는 그대로 쓸 수 있어요.
+              이번 달 햄이 AI 대화 예산을 다 써서 다음 달까지 쉴게. 일정·할 일·하루 노트·뽀모도로는 그대로 쓸 수 있어.
             </p>
           )}
         </>
@@ -96,7 +96,7 @@ function HamiUsagePanel(): React.JSX.Element {
         !error && <p className="usage-loading">사용량을 불러오는 중…</p>
       )}
       {error && <p className="usage-error" role="alert">{error}</p>}
-      <p className="usage-note">🐹 일정 추가·조회·옮기기·취소는 횟수를 쓰지 않아요.</p>
+      <p className="usage-note">🐹 일정으로 알아들은 말은 횟수를 쓰지 않아.</p>
       <div className="usage-refresh">
         <span>{checkedAt ? `마지막 확인 ${formatChecked(checkedAt)}` : ''}</span>
         <button type="button" className="secondary" disabled={loading} onClick={() => void load()}>

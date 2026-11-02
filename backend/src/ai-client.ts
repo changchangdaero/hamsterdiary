@@ -1,6 +1,6 @@
 import type { AppConfig } from './config.js'
 import type { AiUsage, ChatTurn } from './types.js'
-import { HAMI_SYSTEM_PROMPT, trimToLastSentence } from '../../src/shared/hamiPrompt.js'
+import { HAMI_EXAMPLE_TURNS, HAMI_SYSTEM_PROMPT, trimToLastSentence } from '../../src/shared/hamiPrompt.js'
 
 interface ChatCompletionResponse {
   choices?: Array<{ message?: { content?: string }; finish_reason?: string }>
@@ -30,6 +30,7 @@ export const requestAiReply = async (
         model: config.aiModel,
         messages: [
           { role: 'system', content: HAMI_SYSTEM_PROMPT },
+          ...HAMI_EXAMPLE_TURNS,
           ...history,
           { role: 'user', content: message }
         ],

@@ -48,7 +48,7 @@ export const IDLE_ACTIONS: PetIdleAction[] = [
       frames: TOCA_DANCE_FRAMES,
       frameInterval: TOCA_DANCE_FRAME_INTERVAL,
       label: '토카토카 댄스',
-      description: '하찮지만 진심인 춤을 춰요.'
+      description: '하찮지만 진심인 춤을 춰.'
     },
     TOCA_DANCE_FRAMES.length * TOCA_DANCE_FRAME_INTERVAL,
     1
@@ -66,7 +66,7 @@ export const PET_STATE_CLIPS: PetClip[] = [
     loop: true,
     motionClass: 'emotion-sleep',
     label: '잠자기',
-    description: '입력이 없는 채로 정해둔 시간이 지나면 잠들어요.'
+    description: '입력이 없는 채로 정해둔 시간이 지나면 잠들어.'
   },
   {
     frames: ['idle', 'talking'],
@@ -74,31 +74,31 @@ export const PET_STATE_CLIPS: PetClip[] = [
     loop: true,
     motionClass: 'emotion-talking',
     label: '말하기',
-    description: '말풍선으로 이야기할 때예요.'
+    description: '말풍선으로 이야기할 때야.'
   },
   {
     frames: ['happy'],
     motionClass: 'emotion-happy',
     label: '기뻐하기',
-    description: '대화를 열거나 좋은 소식을 전할 때예요.'
+    description: '대화를 열거나 좋은 소식을 전할 때야.'
   },
   {
     frames: ['thumbs-up'],
     motionClass: 'emotion-thumbsUp',
     label: '엄지척',
-    description: '일정이나 할 일을 해냈을 때예요.'
+    description: '일정이나 할 일을 해냈을 때야.'
   },
   {
     frames: ['question'],
     motionClass: 'emotion-question',
     label: '갸웃',
-    description: '들어 옮길 때나 생각할 때예요.'
+    description: '들어 옮길 때나 생각할 때야.'
   },
   {
     frames: ['sad'],
     motionClass: 'emotion-sad',
     label: '시무룩',
-    description: '연결이 안 되거나 아쉬운 소식일 때예요.'
+    description: '연결이 안 되거나 아쉬운 소식일 때야.'
   }
 ]
 

@@ -47,7 +47,7 @@ export const loadConfig = (): AppConfig => ({
   aiApiKeyParameterName: required('AI_API_KEY_PARAMETER_NAME'),
   hashSecretParameterName: required('HASH_SECRET_PARAMETER_NAME'),
   aiBaseUrl: process.env.AI_BASE_URL?.trim() || 'https://api.openai.com/v1',
-  aiModel: process.env.AI_MODEL?.trim() || 'gpt-5-nano',
+  aiModel: process.env.AI_MODEL?.trim() || 'gpt-5.4-mini',
   aiReasoningEffort: process.env.AI_REASONING_EFFORT?.trim() ?? '',
   maxCompletionTokens: integer('AI_MAX_COMPLETION_TOKENS', 160),
   dailyRequestLimit: integer('DAILY_REQUEST_LIMIT', 30),
@@ -58,8 +58,8 @@ export const loadConfig = (): AppConfig => ({
   maxMessageLength: integer('MAX_MESSAGE_LENGTH', 1_000),
   maxHistoryItems: integer('MAX_HISTORY_ITEMS', 5),
   maxRequestCostMicroUsd: integer('MAX_REQUEST_COST_MICRO_USD', 20_000),
-  inputUsdPerMillionTokens: number('INPUT_USD_PER_MILLION_TOKENS', 0.05),
-  outputUsdPerMillionTokens: number('OUTPUT_USD_PER_MILLION_TOKENS', 0.4),
+  inputUsdPerMillionTokens: number('INPUT_USD_PER_MILLION_TOKENS', 0.75),
+  outputUsdPerMillionTokens: number('OUTPUT_USD_PER_MILLION_TOKENS', 4.5),
   requestTimeoutMs: integer('AI_REQUEST_TIMEOUT_MS', 25_000)
 })
 

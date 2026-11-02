@@ -1,5 +1,6 @@
 // 내 API 키로 OpenAI·Gemini에 직접 대화를 보내는 서비스입니다. 햄이 서버를 거치지 않습니다.
 import {
+  HAMI_EXAMPLE_TURNS,
   HAMI_MAX_COMPLETION_TOKENS,
   HAMI_SYSTEM_PROMPT,
   trimToLastSentence
@@ -81,6 +82,7 @@ export const requestByokReply = async (options: {
         model: options.model,
         messages: [
           { role: 'system', content: HAMI_SYSTEM_PROMPT },
+          ...HAMI_EXAMPLE_TURNS,
           ...options.history,
           { role: 'user', content: options.message }
         ],

@@ -2902,7 +2902,12 @@ dd {
   background: var(--pixel-red);
 }
 
-/* Asked once before the first daily plan goes to Gemini. */
+.plan-comment-hint {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+}
+
+/* Asked once before the first daily note goes to Gemini. */
 .plan-gemini-notice {
   margin-top: 8px;
   border: 2px solid var(--pixel-ink);
@@ -3311,6 +3316,12 @@ dd {
   color: var(--pixel-orange);
   font-size: 0.76rem;
   font-weight: 700;
+}
+
+.help-footnote {
+  margin: 16px 2px 0;
+  color: var(--pixel-cream);
+  font-size: 0.78rem;
 }
 
 /* Notes under the schedule examples. */

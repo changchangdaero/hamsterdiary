@@ -36,7 +36,6 @@ interface RegisterPetIpcOptions {
   openHelp: () => void
   openPomodoro: () => void
   openTodos: () => void
-  openDiary: () => void
   openDailyPlan: () => void
   quitApp: () => void
 }
@@ -415,8 +414,7 @@ export const registerPetIpc = (
       { label: '새 일정 추가', click: options.openNewSchedule },
       { label: '집중 타이머', click: options.openPomodoro },
       { label: '할 일 목록', click: options.openTodos },
-      { label: '일기', click: options.openDiary },
-      { label: '하루 계획', click: options.openDailyPlan },
+      { label: '하루 노트', click: options.openDailyPlan },
       { type: 'separator' },
       {
         label: '펫 표시',

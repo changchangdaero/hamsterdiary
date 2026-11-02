@@ -31,6 +31,28 @@ const ADD_REQUEST =
 // Chatty sentence endings ("떨려", "귀찮아") mean it is a conversation, not a schedule title.
 const SENTENCE_ENDING = /(?:다|요|어|아|야|네|지|래|까|해|려|게|고|서|데|나|니|죠)[.!?~]*$/u
 const MAX_TITLE_LENGTH = 25
+// "나 내일 5시 병원 예약있어": stating a plan, which names a schedule when it has a date and a time.
+const STATEMENT_ENDING =
+  /\s*(?:있어요|있어|있다|있음|있네|있거든|있습니다|잡혔어|잡혀\s*있어|가야\s*(?:해요|해|돼요|돼|됨|함)|가야겠어|갈\s*거야)[.!~]*$/u
+const SPEAKER = /^(?:나는|저는|내가|제가|나|저)\s+/u
+// "회의 있는데 너무 귀찮아" -> "회의"
+const CHATTY_TAIL = /\s*(?:있어서|있는데|있으니|이라서|이라|라서|인데|때문에).*$/u
+
+// A schedule title from what is left of a sentence once the date and time are gone.
+const cleanTitle = (text: string): string => {
+  const cleaned = text
+    .replace(/일정|스케줄/gu, ' ')
+    .replace(/[?!.~]+/gu, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .replace(SPEAKER, '')
+    .replace(/\s+(?:을|를|으로|로)$/u, '')
+  const withoutEnding = cleaned.replace(STATEMENT_ENDING, '')
+  if (withoutEnding === cleaned) return cleaned
+  // "회의가 있어" -> "회의", while "요가 있어" keeps its 가.
+  const withoutParticle = withoutEnding.replace(/[이가]$/u, '')
+  return withoutParticle.length >= 2 ? withoutParticle : withoutEnding
+}
 
 const cleanTarget = (text: string): string =>
   text
@@ -63,6 +85,25 @@ const looksLikeTitle = (title: string): boolean =>
   !/\?/u.test(title) &&
   !SENTENCE_ENDING.test(title)
 
+// A stated plan needs both a date and a time; anything vaguer stays conversation.
+const detectStatement = (text: string, now: Date): ScheduleIntent | null => {
+  if (/\?/u.test(text) || !STATEMENT_ENDING.test(text)) return null
+  const parsed = parseSchedule(text, now)
+  const title = cleanTitle(parsed.title)
+  if (!parsed.dateMatched || !parsed.timeMatched || !title || title.length > MAX_TITLE_LENGTH) return null
+  return { kind: 'add', items: [{ ...parsed, title }] }
+}
+
+// A sentence sent to chat that still names a date and a time, offered as a schedule after the reply.
+export const findMissedSchedule = (input: string, now = new Date()): ParsedSchedule | null => {
+  const text = input.trim().replace(/\s{2,}/g, ' ')
+  if (/\?/u.test(text)) return null
+  const parsed = parseSchedule(text, now)
+  const title = cleanTitle(parsed.title.replace(CHATTY_TAIL, ''))
+  if (!parsed.dateMatched || !parsed.timeMatched || !title || title.length > MAX_TITLE_LENGTH) return null
+  return { ...parsed, title }
+}
+
 const detectAdd = (text: string, now: Date): ScheduleIntent | null => {
   const explicit = ADD_REQUEST.test(text)
   const body = text.replace(ADD_REQUEST, '').trim()
@@ -70,7 +111,7 @@ const detectAdd = (text: string, now: Date): ScheduleIntent | null => {
   if (parts.length === 0 || parts.length > 5) return null
   const items = parts.map((part) => {
     const parsed = parseSchedule(part, now)
-    return { ...parsed, title: cleanTarget(parsed.title) }
+    return { ...parsed, title: cleanTitle(parsed.title) }
   })
   // A question ("내일 날씨 어때?") is conversation unless it asks to add something.
   if (!explicit && /\?/u.test(text)) return null
@@ -107,7 +148,7 @@ export const detectScheduleIntent = (input: string, now = new Date()): ScheduleI
     }
   }
 
-  return detectQuery(text, now) ?? detectAdd(text, now)
+  return detectStatement(text, now) ?? detectQuery(text, now) ?? detectAdd(text, now)
 }
 
 // Upcoming schedules whose title contains the target, ignoring spaces and case.

@@ -4,16 +4,17 @@ import type { DailyPlan, DailyPlanCommentResult } from '../../shared/types/plan'
 import { dailyPlanStore } from '../stores/dailyPlanStore'
 import { converseWithHami } from './hamiChatService'
 import { FALLBACK_CHAT_REPLY, friendlyChatError } from '../../shared/chatErrors'
+import { comfortReplyFor } from '../../shared/hamiPrompt'
 
 // The chat server caps one message at 1,000 UTF-16 units, instruction included.
 const MAX_MESSAGE_LENGTH = 1_000
-const INSTRUCTION = `아래는 내 하루 계획이야. 읽고 3문장 이내, 120자 안팎으로 응원해줘. 목록 말고 말하듯이 써줘.
-계획에 적힌 내용을 구체적으로 짚어서 말해주고, 무리해 보이면 우선순위 하나만 부담 없이 제안해줘.
+const INSTRUCTION = `아래는 내 하루 노트야. 계획이나 있었던 일이 적혀 있어. 읽고 3문장 이내, 120자 안팎으로 답해줘. 목록 말고 말하듯이 써줘.
+적힌 내용을 구체적으로 짚어서 말해줘. 계획이면 응원하고, 무리해 보이면 우선순위 하나만 부담 없이 제안해줘. 있었던 일이면 공감해줘.
 훈계하거나 가르치려 들지 말고, 친구처럼 담백하게 말해줘.`
 
-const THINKING_TEXT = '어디 보자… 오늘 계획 읽어볼게!'
-const NOT_CONFIGURED_TEXT = '아직 AI 대화 서버가 연결되지 않아서 계획을 못 읽었어.'
-const FAILED_TEXT = '지금은 계획을 잘 못 읽겠어. 잠깐 뒤에 다시 보여줘!'
+const THINKING_TEXT = '어디 보자… 노트 읽어볼게!'
+const NOT_CONFIGURED_TEXT = '아직 AI 대화 서버가 연결되지 않아서 노트를 못 읽었어.'
+const FAILED_TEXT = '지금은 노트를 잘 못 읽겠어. 잠깐 뒤에 다시 보여줘!'
 
 export interface PetSpeaker {
   think: (text: string) => void
@@ -41,6 +42,13 @@ export const commentOnDailyPlan = async (
   const plan = dailyPlanStore.get(key)
   if (!plan || plan.text.trim().length === 0) {
     return { status: 'empty', truncated: false, plan: plan ?? null }
+  }
+
+  // Such a page gets a written reply and is not sent to the AI.
+  const comfort = comfortReplyFor(plan.text)
+  if (comfort) {
+    pet.speak(comfort, 'idle')
+    return { status: 'ok', truncated: false, plan }
   }
 
   const { message, truncated } = buildMessage(plan.text)
