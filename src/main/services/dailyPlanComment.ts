@@ -3,6 +3,7 @@ import type { PetEmotion } from '../../shared/types/pet'
 import type { DailyPlan, DailyPlanCommentResult } from '../../shared/types/plan'
 import { dailyPlanStore } from '../stores/dailyPlanStore'
 import { converseWithHami } from './hamiChatService'
+import { FALLBACK_CHAT_REPLY, friendlyChatError } from '../../shared/chatErrors'
 
 // The chat server caps one message at 1,000 UTF-16 units, instruction included.
 const MAX_MESSAGE_LENGTH = 1_000
@@ -66,8 +67,14 @@ export const commentOnDailyPlan = async (
   } catch (error) {
     const notConfigured =
       error instanceof Error && error.message.includes('[HAMI_CHAT_NOT_CONFIGURED]')
-    console.warn('[plan:comment] failed', error)
-    pet.speak(notConfigured ? NOT_CONFIGURED_TEXT : FAILED_TEXT, 'sad')
+    // Only the tagged message: never the provider's reply body.
+    console.warn('[plan:comment] failed', error instanceof Error ? error.message : 'unknown')
+    // Own-key problems (missing or wrong key) get a hint about where to fix them.
+    const friendly = friendlyChatError(error)
+    pet.speak(
+      notConfigured ? NOT_CONFIGURED_TEXT : friendly === FALLBACK_CHAT_REPLY ? FAILED_TEXT : friendly,
+      'sad'
+    )
     return { status: notConfigured ? 'not-configured' : 'error', truncated, plan }
   }
 }

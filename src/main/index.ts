@@ -16,6 +16,7 @@ import { registerScheduleIpc } from './ipc/registerScheduleIpc'
 import { registerReminderIpc } from './ipc/registerReminderIpc'
 import { registerHolidayIpc } from './ipc/registerHolidayIpc'
 import { registerHamiChatIpc } from './ipc/registerHamiChatIpc'
+import { registerByokIpc } from './ipc/registerByokIpc'
 import { registerOnboardingIpc } from './ipc/registerOnboardingIpc'
 import { registerHelpIpc } from './ipc/registerHelpIpc'
 import { registerPomodoroIpc } from './ipc/registerPomodoroIpc'
@@ -826,6 +827,7 @@ if (!hasSingleInstanceLock) {
       getPetWindow: () => petWindow,
       getUsageWindows: () => [petWindow, settingsWindow]
     })
+    registerByokIpc({ getSettingsWindow: () => settingsWindow })
     registerReminderIpc({
       getTrustedWindows: () => [
         mainWindow,

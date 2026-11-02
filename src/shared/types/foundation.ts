@@ -28,6 +28,14 @@ import type {
 } from './notifications'
 import type { Holiday } from './holiday'
 import type { HamiChatRequest, HamiChatResponse, HamiUsage } from './chat'
+import type {
+  ByokProvider,
+  ByokStatus,
+  ByokTestResult,
+  ChatSettings,
+  SaveByokKeyPayload,
+  TestByokPayload
+} from './byok'
 import type { PomodoroSettings, PomodoroState } from './pomodoro'
 import type {
   SetTodoDonePayload,
@@ -95,6 +103,15 @@ export interface DesktopPetAPI {
   reportPetActionResult: (result: PetActionResult) => void
   converseWithHami: (request: HamiChatRequest) => Promise<HamiChatResponse>
   getHamiUsage: () => Promise<HamiUsage>
+  getChatSettings: () => Promise<ChatSettings>
+  updateChatSettings: (settings: ChatSettings) => Promise<ChatSettings>
+  getByokStatus: () => Promise<ByokStatus>
+  saveByokKey: (payload: SaveByokKeyPayload) => Promise<ByokStatus>
+  deleteByokKey: (provider: ByokProvider) => Promise<ByokStatus>
+  testByok: (payload: TestByokPayload) => Promise<ByokTestResult>
+  openByokPage: (provider: ByokProvider, page: 'key' | 'usage') => Promise<void>
+  needsGeminiPlanNotice: () => Promise<boolean>
+  acknowledgeGeminiPlanNotice: () => Promise<void>
   listSchedules: () => Promise<Schedule[]>
   createSchedule: (draft: ScheduleDraft) => Promise<Schedule[]>
   updateSchedule: (payload: UpdateSchedulePayload) => Promise<Schedule[]>
