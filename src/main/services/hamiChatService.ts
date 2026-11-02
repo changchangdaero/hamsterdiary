@@ -2,6 +2,8 @@ import { app } from 'electron'
 import { randomUUID } from 'node:crypto'
 import type { HamiChatRequest, HamiChatResponse, HamiUsage } from '../../shared/types/chat'
 import { runtimeStore } from '../stores'
+import { requestByokReply } from './byokChatService'
+import { readByokKey, readChatSettings } from './byokKeyService'
 
 const CHAT_API_URL = (
   import.meta.env as unknown as Record<string, string | undefined>
@@ -41,13 +43,31 @@ const validateRequest = (request: HamiChatRequest): HamiChatRequest => {
   }
 }
 
+// Own-key mode talks to the chosen provider directly; the Hami server never sees it.
+const converseWithOwnKey = async (request: HamiChatRequest): Promise<HamiChatResponse> => {
+  const { provider, models } = readChatSettings()
+  const apiKey = readByokKey(provider)
+  if (!apiKey) {
+    throw new Error('[BYOK_NO_KEY] 내 API 키가 아직 저장되지 않았어.')
+  }
+  const reply = await requestByokReply({
+    provider,
+    model: models[provider],
+    apiKey,
+    message: request.message,
+    history: request.history
+  })
+  return { reply, byok: true }
+}
+
 export const converseWithHami = async (
   rawRequest: HamiChatRequest
 ): Promise<HamiChatResponse> => {
+  const request = validateRequest(rawRequest)
+  if (readChatSettings().mode === 'byok') return converseWithOwnKey(request)
   if (!CHAT_API_URL) {
     throw new Error('[HAMI_CHAT_NOT_CONFIGURED] AI 대화 서버가 아직 연결되지 않았어.')
   }
-  const request = validateRequest(rawRequest)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
   try {

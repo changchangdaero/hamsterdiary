@@ -28,4 +28,6 @@ export interface HamiChatResponse {
   remainingMonthlyUsage?: number
   // True when the server answered with its usage-limit notice (HTTP 429).
   limited?: boolean
+  // Answered with the user's own API key, so no Hami usage limit applies.
+  byok?: boolean
 }

@@ -23,9 +23,9 @@ function OnboardingWindow(): React.JSX.Element {
           <div className="onboarding-content">
             <p className="pixel-kicker">PRIVATE BY DEFAULT</p>
             <h1>네 기록은 컴퓨터에만 둘게</h1>
-            <p>일정, 할 일, 일기와 뽀모도로 기록은 외부 서버로 보내지 않아.</p>
-            <p>AI 대화를 사용할 때만 네가 대화창에 입력한 내용과 최근 대화 일부가 답변을 만들기 위해 외부 AI로 전송돼.</p>
-            <p>AI 대화는 하루 10회, 한 달 60회까지 무료로 사용할 수 있어.</p>
+            <p>일정, 할 일, 일기와 뽀모도로 기록은 외부 서버로 보내지 않아. 대화창에 말한 일정도 이 컴퓨터에서만 처리해.</p>
+            <p>나랑 수다를 떨 때만 대화창에 입력한 말과 최근 대화 일부가 답변을 만들기 위해 외부 AI로 전송돼. 하루 계획은 [햄이에게 보여주기]를 누를 때만 전송돼.</p>
+            <p>AI 대화는 무료야. 남은 횟수는 설정 → 대화 탭에서 볼 수 있고, 내 API 키로 바꿀 수도 있어.</p>
             <button type="button" onClick={() => setStep(3)}>확인했어</button>
           </div>
         )}
@@ -34,7 +34,7 @@ function OnboardingWindow(): React.JSX.Element {
           <div className="onboarding-content">
             <p className="pixel-kicker">READY!</p>
             <h1>준비 끝!</h1>
-            <p>햄이를 두 번 클릭하면 대화할 수 있어. 일정과 할 일은 대화창의 바로가기에서 직접 추가할 수 있어.</p>
+            <p>햄이를 두 번 클릭하고 “내일 3시 병원”처럼 말해봐. 일정을 넣어줄게! 더 궁금한 건 우클릭 → 도움말에 있어.</p>
             <button type="button" onClick={() => void window.desktopPetAPI.completeOnboarding()}>
               햄이 만나기
             </button>

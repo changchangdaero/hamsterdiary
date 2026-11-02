@@ -2886,8 +2886,10 @@ dd {
 }
 
 .key-status {
+  flex-shrink: 0;
   border: 2px solid var(--pixel-ink);
   padding: 4px 7px;
+  white-space: nowrap;
   color: var(--pixel-red);
   background: var(--pixel-sand);
 }
@@ -2898,6 +2900,92 @@ dd {
 
 .api-key-settings button.danger {
   background: var(--pixel-red);
+}
+
+/* Settings "대화" tab: own API key (BYOK) form. */
+.chat-mode-group small {
+  font-size: 0.72rem;
+}
+
+.byok-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.byok-panel > label {
+  display: grid;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.byok-panel select {
+  border: var(--pixel-border);
+  padding: 8px 10px;
+  background: #fff8e4;
+  font: inherit;
+}
+
+.settings-document .byok-panel label small {
+  color: var(--pixel-brown);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.byok-panel input[type="password"] {
+  width: 100%;
+  border: var(--pixel-border);
+  padding: 10px;
+  color: var(--pixel-cream);
+  -webkit-text-fill-color: var(--pixel-cream);
+  background: #202226;
+  box-shadow: inset 2px 2px 0 #000;
+  caret-color: var(--pixel-cream);
+  font: inherit;
+}
+
+.byok-panel input[type="password"]::placeholder {
+  color: #a8a092;
+  -webkit-text-fill-color: #a8a092;
+}
+
+.byok-panel .api-key-actions {
+  margin-top: 0;
+}
+
+.settings-document .byok-feedback {
+  margin: 0;
+  border: 2px solid var(--pixel-ink);
+  padding: 7px 10px;
+  font-size: 0.82rem;
+}
+
+.settings-document .byok-feedback.is-ok {
+  background: #d7ead8;
+}
+
+.settings-document .byok-feedback.is-error {
+  background: #f6dcc8;
+}
+
+.settings-document .byok-feedback.is-info {
+  background: #fff8e4;
+}
+
+.byok-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.api-key-settings button.link {
+  border: 0;
+  padding: 0;
+  color: var(--pixel-brown);
+  background: transparent;
+  box-shadow: none !important;
+  font-size: 0.82rem;
+  text-decoration: underline;
 }
 
 /* Settings "대화" tab: remaining AI chats today and this month. */
@@ -3182,6 +3270,12 @@ dd {
   color: var(--pixel-orange);
   font-size: 0.76rem;
   font-weight: 700;
+}
+
+/* Notes under the schedule examples. */
+.help-card ul.help-tips {
+  margin-top: 12px;
+  font-size: 0.85rem;
 }
 
 .help-close {

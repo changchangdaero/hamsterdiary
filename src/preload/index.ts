@@ -88,6 +88,15 @@ const desktopPetAPI: DesktopPetAPI = {
   converseWithHami: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.converseWithHami, request),
   getHamiUsage: () => ipcRenderer.invoke(IPC_CHANNELS.getHamiUsage),
+  getChatSettings: () => ipcRenderer.invoke(IPC_CHANNELS.getChatSettings),
+  updateChatSettings: (settings) =>
+    ipcRenderer.invoke(IPC_CHANNELS.updateChatSettings, settings),
+  getByokStatus: () => ipcRenderer.invoke(IPC_CHANNELS.getByokStatus),
+  saveByokKey: (payload) => ipcRenderer.invoke(IPC_CHANNELS.saveByokKey, payload),
+  deleteByokKey: (provider) => ipcRenderer.invoke(IPC_CHANNELS.deleteByokKey, provider),
+  testByok: (payload) => ipcRenderer.invoke(IPC_CHANNELS.testByok, payload),
+  openByokPage: (provider, page) =>
+    ipcRenderer.invoke(IPC_CHANNELS.openByokPage, provider, page),
   listSchedules: () => ipcRenderer.invoke(IPC_CHANNELS.listSchedules),
   createSchedule: (draft) =>
     ipcRenderer.invoke(IPC_CHANNELS.createSchedule, draft),

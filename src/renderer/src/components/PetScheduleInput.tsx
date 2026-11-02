@@ -14,6 +14,7 @@ import {
   type ScheduleIntent
 } from '../scheduleChat'
 import { splitSpeechPages } from '../speechPages'
+import { friendlyChatError } from '../../../shared/chatErrors'
 import { SpeechBubbleFrame } from './SpeechBubble'
 import TypewriterText from './TypewriterText'
 
@@ -35,7 +36,6 @@ type PendingAction =
       time?: string
     }
 
-const FALLBACK_MESSAGE = '지금은 대답하기가 조금 어려워. 잠시 후에 다시 말 걸어줘! 🐹'
 const DEFAULT_REMINDER_MINUTES = 10
 const MAX_CANDIDATES = 3
 // Show how many chats are left once today's count is this low.
@@ -104,12 +104,7 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
         { role: 'assistant', content: result.reply } as const
       ].slice(-5))
     } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : ''
-      say(
-        message.includes('HAMI_CHAT_NOT_CONFIGURED')
-          ? 'AI 대화 서버가 아직 연결되지 않았어. 일정은 "내일 3시 병원"처럼 말해주면 넣어줄게! 🐹'
-          : FALLBACK_MESSAGE
-      )
+      say(friendlyChatError(requestError))
     } finally {
       setPending(false)
     }

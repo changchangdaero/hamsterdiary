@@ -4,6 +4,7 @@ import type { SettingsStoreData } from '../../shared/types/stores'
 import { DEFAULT_REMINDER_SETTINGS } from '../../shared/types/notifications'
 import { DEFAULT_POMODORO_SETTINGS } from '../../shared/types/pomodoro'
 import { DEFAULT_PET_BEHAVIOR_SETTINGS } from '../../shared/types/pet'
+import { DEFAULT_CHAT_SETTINGS } from '../../shared/types/byok'
 
 export const settingsStore = new Store<SettingsStoreData>({
   name: 'settings',
@@ -14,6 +15,7 @@ export const settingsStore = new Store<SettingsStoreData>({
     onboardingWelcomeShown: false,
     reminders: DEFAULT_REMINDER_SETTINGS,
     pomodoro: DEFAULT_POMODORO_SETTINGS,
-    petBehavior: DEFAULT_PET_BEHAVIOR_SETTINGS
+    petBehavior: DEFAULT_PET_BEHAVIOR_SETTINGS,
+    chat: DEFAULT_CHAT_SETTINGS
   }
 })

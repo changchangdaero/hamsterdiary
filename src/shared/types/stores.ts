@@ -1,4 +1,5 @@
 // 세 electron-store 파일에 저장되는 데이터 구조를 정의하는 파일입니다.
+import type { ChatSettings, ByokProvider } from './byok'
 import type { Schedule } from './schedule'
 import type { ReminderSettings } from './notifications'
 import type { Holiday } from './holiday'
@@ -21,6 +22,13 @@ export interface SettingsStoreData {
   reminders: ReminderSettings
   pomodoro: PomodoroSettings
   petBehavior: PetBehaviorSettings
+  chat: ChatSettings
+}
+
+// Own API keys, each encrypted with the OS (Electron safeStorage) and stored as base64.
+export interface ByokKeysStoreData {
+  dataVersion: number
+  keys: Partial<Record<ByokProvider, string>>
 }
 
 export interface SchedulesStoreData {
