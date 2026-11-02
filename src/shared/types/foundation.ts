@@ -110,6 +110,8 @@ export interface DesktopPetAPI {
   deleteByokKey: (provider: ByokProvider) => Promise<ByokStatus>
   testByok: (payload: TestByokPayload) => Promise<ByokTestResult>
   openByokPage: (provider: ByokProvider, page: 'key' | 'usage') => Promise<void>
+  needsGeminiPlanNotice: () => Promise<boolean>
+  acknowledgeGeminiPlanNotice: () => Promise<void>
   listSchedules: () => Promise<Schedule[]>
   createSchedule: (draft: ScheduleDraft) => Promise<Schedule[]>
   updateSchedule: (payload: UpdateSchedulePayload) => Promise<Schedule[]>

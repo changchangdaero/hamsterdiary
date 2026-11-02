@@ -192,7 +192,9 @@ function ChatModeSettings({ active }: { active: boolean }): React.JSX.Element {
           <>
             <p>대화창에 입력한 수다와 최근 대화 일부가 {info.label}로 바로 전송되고, 그 회사의 약관을 따라.</p>
             {provider === 'gemini' && (
-              <p>Google 무료 키는 입력한 내용이 Google 서비스 개선에 쓰일 수 있어.</p>
+              <p className="byok-warning">
+                ⚠️ 결제를 연결하지 않은 무료 등급에서는 입력한 내용이 Google의 AI 학습에 쓰이고, 사람이 읽을 수도 있어. 비밀번호나 건강 정보 같은 민감한 내용은 보내지 마. 결제를 연결한 키는 학습에 쓰이지 않아.
+              </p>
             )}
           </>
         )}

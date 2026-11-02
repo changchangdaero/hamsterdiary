@@ -35,6 +35,8 @@ export const IPC_CHANNELS = {
   deleteByokKey: 'byok:delete-key',
   testByok: 'byok:test',
   openByokPage: 'byok:open-page',
+  needsGeminiPlanNotice: 'plan:needs-gemini-notice',
+  acknowledgeGeminiPlanNotice: 'plan:acknowledge-gemini-notice',
   listSchedules: 'schedule:list',
   createSchedule: 'schedule:create',
   updateSchedule: 'schedule:update',

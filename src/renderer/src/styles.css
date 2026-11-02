@@ -2902,6 +2902,47 @@ dd {
   background: var(--pixel-red);
 }
 
+/* Asked once before the first daily plan goes to Gemini. */
+.plan-gemini-notice {
+  margin-top: 8px;
+  border: 2px solid var(--pixel-ink);
+  padding: 8px 10px;
+  background: #f6dcc8;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.plan-gemini-notice p {
+  margin: 0 0 8px;
+}
+
+.plan-gemini-notice div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.plan-gemini-notice button {
+  border: 2px solid var(--pixel-ink);
+  padding: 4px 8px;
+  background: var(--pixel-sand);
+  font: inherit;
+  cursor: pointer;
+}
+
+.plan-gemini-notice button.confirm {
+  color: var(--pixel-cream);
+  background: var(--pixel-orange);
+}
+
+.settings-document .usage-privacy p.byok-warning {
+  margin: 6px 0;
+  border: 2px solid var(--pixel-ink);
+  padding: 7px 10px;
+  background: #f6dcc8;
+}
+
 /* Settings "대화" tab: own API key (BYOK) form. */
 .chat-mode-group small {
   font-size: 0.72rem;

@@ -41,7 +41,8 @@ const testConnection = async (payload: unknown): Promise<ByokTestResult> => {
     return { ok: true, reply }
   } catch (error) {
     if (error instanceof ByokError) {
-      return { ok: false, reason: error.reason, message: error.message.replace(/^\[[A-Z_]+\]\s*/u, '') }
+      const message = error.message.replace(/^\[[A-Z_]+\]\s*/u, '')
+      return { ok: false, reason: error.reason, message: error.detail ? `${message} (${error.detail})` : message }
     }
     return { ok: false, reason: 'failed', message: '연결 확인에 실패했어.' }
   }

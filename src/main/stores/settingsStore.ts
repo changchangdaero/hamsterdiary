@@ -16,6 +16,7 @@ export const settingsStore = new Store<SettingsStoreData>({
     reminders: DEFAULT_REMINDER_SETTINGS,
     pomodoro: DEFAULT_POMODORO_SETTINGS,
     petBehavior: DEFAULT_PET_BEHAVIOR_SETTINGS,
-    chat: DEFAULT_CHAT_SETTINGS
+    chat: DEFAULT_CHAT_SETTINGS,
+    geminiPlanNoticeSeen: false
   }
 })

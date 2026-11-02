@@ -23,6 +23,8 @@ export interface SettingsStoreData {
   pomodoro: PomodoroSettings
   petBehavior: PetBehaviorSettings
   chat: ChatSettings
+  // The user has seen the notice about sending daily plans to Gemini.
+  geminiPlanNoticeSeen: boolean
 }
 
 // Own API keys, each encrypted with the OS (Electron safeStorage) and stored as base64.

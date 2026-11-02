@@ -67,7 +67,8 @@ export const commentOnDailyPlan = async (
   } catch (error) {
     const notConfigured =
       error instanceof Error && error.message.includes('[HAMI_CHAT_NOT_CONFIGURED]')
-    console.warn('[plan:comment] failed', error)
+    // Only the tagged message: never the provider's reply body.
+    console.warn('[plan:comment] failed', error instanceof Error ? error.message : 'unknown')
     // Own-key problems (missing or wrong key) get a hint about where to fix them.
     const friendly = friendlyChatError(error)
     pet.speak(

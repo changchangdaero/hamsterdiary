@@ -47,6 +47,7 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
   const [lastReply, setLastReply] = useState('')
   const [commentState, setCommentState] = useState<CommentState>('idle')
   const [truncated, setTruncated] = useState(false)
+  const [showGeminiNotice, setShowGeminiNotice] = useState(false)
   const dateRef = useRef(date)
   dateRef.current = date
 
@@ -65,6 +66,7 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
   useEffect(() => {
     setDisplayMonth(monthOf(date))
     setCommentState('idle')
+    setShowGeminiNotice(false)
   }, [date])
 
   useEffect(() => {
@@ -109,6 +111,31 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
     } catch {
       if (dateRef.current === requestDate) setCommentState('error')
     }
+  }
+
+  // The first plan sent to Gemini waits for the user to read the notice; if the check fails, nothing is sent.
+  const requestShowToHami = async (): Promise<void> => {
+    try {
+      if (await window.desktopPetAPI.needsGeminiPlanNotice()) {
+        setShowGeminiNotice(true)
+        return
+      }
+    } catch {
+      setCommentState('error')
+      return
+    }
+    await showToHami()
+  }
+
+  const confirmGeminiNotice = async (): Promise<void> => {
+    setShowGeminiNotice(false)
+    try {
+      await window.desktopPetAPI.acknowledgeGeminiPlanNotice()
+    } catch {
+      setCommentState('error')
+      return
+    }
+    await showToHami()
   }
 
   const dayClassName = (day: CalendarDay): string =>
@@ -176,11 +203,20 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
           <button
             type="button"
             className="plan-comment-button"
-            disabled={!canShow}
-            onClick={() => void showToHami()}
+            disabled={!canShow || showGeminiNotice}
+            onClick={() => void requestShowToHami()}
           >
             {lastReply ? '햄이에게 다시 보여주기' : '햄이에게 보여주기'}
           </button>
+          {showGeminiNotice && (
+            <div className="plan-gemini-notice" role="alertdialog" aria-label="Gemini 전송 안내">
+              <p>이 계획이 Google Gemini로 전송돼. 결제를 연결하지 않은 무료 등급이면 내용이 Google의 AI 학습에 쓰이고, 사람이 읽을 수도 있어. 민감한 내용은 빼고 보내줘.</p>
+              <div>
+                <button type="button" onClick={() => setShowGeminiNotice(false)}>취소</button>
+                <button type="button" className="confirm" onClick={() => void confirmGeminiNotice()}>확인하고 보여주기</button>
+              </div>
+            </div>
+          )}
           <p className="plan-comment-status" role="status">
             {commentStateLabel(commentState, truncated)}
           </p>

@@ -97,6 +97,9 @@ const desktopPetAPI: DesktopPetAPI = {
   testByok: (payload) => ipcRenderer.invoke(IPC_CHANNELS.testByok, payload),
   openByokPage: (provider, page) =>
     ipcRenderer.invoke(IPC_CHANNELS.openByokPage, provider, page),
+  needsGeminiPlanNotice: () => ipcRenderer.invoke(IPC_CHANNELS.needsGeminiPlanNotice),
+  acknowledgeGeminiPlanNotice: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.acknowledgeGeminiPlanNotice),
   listSchedules: () => ipcRenderer.invoke(IPC_CHANNELS.listSchedules),
   createSchedule: (draft) =>
     ipcRenderer.invoke(IPC_CHANNELS.createSchedule, draft),

@@ -5,7 +5,9 @@ import type {
   DailyPlanCommentResult,
   SaveDailyPlanPayload
 } from '../../shared/types/plan'
+import { settingsStore } from '../stores'
 import { dailyPlanStore } from '../stores/dailyPlanStore'
+import { readChatSettings } from '../services/byokKeyService'
 import { parseDateKey } from './parseDateKey'
 
 interface Options {
@@ -78,9 +80,20 @@ export const registerDailyPlanIpc = (options: Options): (() => void) => {
     assertTrusted(event)
     return options.commentOnDailyPlan(parseDateKey(rawDate))
   })
+  ipcMain.handle(IPC_CHANNELS.needsGeminiPlanNotice, (event) => {
+    assertTrusted(event)
+    const { mode, provider } = readChatSettings()
+    return mode === 'byok' && provider === 'gemini' && !settingsStore.get('geminiPlanNoticeSeen')
+  })
+  ipcMain.handle(IPC_CHANNELS.acknowledgeGeminiPlanNotice, (event) => {
+    assertTrusted(event)
+    settingsStore.set('geminiPlanNoticeSeen', true)
+  })
 
   return () => {
     for (const channel of [
+      IPC_CHANNELS.needsGeminiPlanNotice,
+      IPC_CHANNELS.acknowledgeGeminiPlanNotice,
       IPC_CHANNELS.getDailyPlan,
       IPC_CHANNELS.listDailyPlanDates,
       IPC_CHANNELS.saveDailyPlan,
