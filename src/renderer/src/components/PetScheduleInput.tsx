@@ -16,6 +16,7 @@ import {
 } from '../scheduleChat'
 import { splitSpeechPages } from '../speechPages'
 import { friendlyChatError } from '../../../shared/chatErrors'
+import { comfortReplyFor } from '../../../shared/hamiPrompt'
 import { SpeechBubbleFrame } from './SpeechBubble'
 import TypewriterText from './TypewriterText'
 
@@ -185,6 +186,11 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
     setShowCalendarLink(false)
     setUsageHint('')
     setMissedSchedule(null)
+    const comfort = comfortReplyFor(message)
+    if (comfort) {
+      say(comfort)
+      return
+    }
     const intent = detectScheduleIntent(message)
     if (intent) {
       await handleScheduleIntent(intent, message)

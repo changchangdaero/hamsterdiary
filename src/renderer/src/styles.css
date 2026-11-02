@@ -3318,6 +3318,12 @@ dd {
   font-weight: 700;
 }
 
+.help-footnote {
+  margin: 16px 2px 0;
+  color: var(--pixel-cream);
+  font-size: 0.78rem;
+}
+
 /* Notes under the schedule examples. */
 .help-card ul.help-tips {
   margin-top: 12px;

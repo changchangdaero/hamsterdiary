@@ -115,6 +115,8 @@ function HelpWindow(): React.JSX.Element {
         </ul>
       </section>
 
+      <p className="help-footnote">많이 힘들 땐 혼자 버티지 말고 믿을 수 있는 사람에게 말해줘. 자살예방 상담전화는 109야.</p>
+
       <button
         type="button"
         className="help-close"

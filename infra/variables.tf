@@ -41,17 +41,17 @@ variable "ai_base_url" {
 variable "ai_model" {
   description = "OpenAI-compatible chat completion model"
   type        = string
-  default     = "gpt-5-nano"
+  default     = "gpt-5.4-mini"
 }
 
 variable "ai_reasoning_effort" {
   description = "reasoning_effort sent to reasoning models; empty string omits it for models that reject it"
   type        = string
-  default     = "minimal"
+  default     = "none"
 
   validation {
-    condition     = contains(["", "minimal", "low", "medium", "high"], var.ai_reasoning_effort)
-    error_message = "ai_reasoning_effort must be empty, minimal, low, medium, or high."
+    condition     = contains(["", "none", "minimal", "low", "medium", "high"], var.ai_reasoning_effort)
+    error_message = "ai_reasoning_effort must be empty, none, minimal, low, medium, or high."
   }
 }
 
@@ -122,13 +122,13 @@ variable "usd_krw_rate" {
 variable "input_usd_per_million_tokens" {
   description = "AI input token price in USD per 1M tokens"
   type        = number
-  default     = 0.05
+  default     = 0.75
 }
 
 variable "output_usd_per_million_tokens" {
   description = "AI output token price in USD per 1M tokens"
   type        = number
-  default     = 0.4
+  default     = 4.5
 }
 
 variable "lambda_reserved_concurrency" {

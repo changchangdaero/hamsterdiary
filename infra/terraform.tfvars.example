@@ -10,12 +10,12 @@ monthly_budget_krw = 30000
 budget_cutoff_krw  = 27000
 
 # Conservative operational assumptions. Update these when provider pricing changes.
-ai_model                      = "gpt-5-nano"
-ai_reasoning_effort           = "minimal"
+ai_model                      = "gpt-5.4-mini"
+ai_reasoning_effort           = "none"
 ai_max_completion_tokens      = 160
 usd_krw_rate                  = 1500
-input_usd_per_million_tokens  = 0.05
-output_usd_per_million_tokens = 0.4
+input_usd_per_million_tokens  = 0.75
+output_usd_per_million_tokens = 4.5
 
 # Leave unset unless the account's Lambda concurrency limit is above 10.
 # lambda_reserved_concurrency = 5

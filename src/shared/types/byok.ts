@@ -34,8 +34,8 @@ export const BYOK_PROVIDER_INFO: Record<ByokProvider, ByokProviderInfo> = {
     usagePageUrl: 'https://platform.openai.com/usage',
     tokenLimitParam: 'max_completion_tokens',
     models: [
-      { id: 'gpt-5-nano', label: 'gpt-5-nano', hint: '가장 저렴하고 빨라 (햄이 서버와 같은 모델)', reasoningEffort: 'minimal' },
-      { id: 'gpt-5-mini', label: 'gpt-5-mini', hint: '말이 더 자연스러워. 비용은 약 5배', reasoningEffort: 'minimal' }
+      { id: 'gpt-5.6-luna', label: 'gpt-5.6-luna', hint: '가장 저렴해. 가끔 놀려도 차분하게 받아줄 수 있어', reasoningEffort: 'low' },
+      { id: 'gpt-5.4-mini', label: 'gpt-5.4-mini', hint: '말투가 제일 햄스터다워 (햄이 서버와 같은 모델)', reasoningEffort: 'none' }
     ]
   },
   gemini: {
@@ -62,7 +62,7 @@ export interface ChatSettings {
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   mode: 'server',
   provider: 'openai',
-  models: { openai: 'gpt-5-nano', gemini: 'gemini-3.5-flash-lite' }
+  models: { openai: 'gpt-5.6-luna', gemini: 'gemini-3.5-flash-lite' }
 }
 
 // What the settings screen may know about a saved key. The key itself never leaves the main process.
