@@ -25,6 +25,8 @@ export interface SettingsStoreData {
   chat: ChatSettings
   // The user has seen the notice about sending daily plans to Gemini.
   geminiPlanNoticeSeen: boolean
+  // Old diary entries have been copied into the daily notes.
+  diaryMergedIntoNotes: boolean
 }
 
 // Own API keys, each encrypted with the OS (Electron safeStorage) and stored as base64.

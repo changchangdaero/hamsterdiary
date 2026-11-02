@@ -153,12 +153,6 @@ const desktopPetAPI: DesktopPetAPI = {
   openTodos: () => ipcRenderer.invoke(IPC_CHANNELS.openTodos),
   onTodosChanged: (listener) =>
     subscribe<Todo[]>(IPC_CHANNELS.todosChanged, listener),
-  getDiary: (date) => ipcRenderer.invoke(IPC_CHANNELS.getDiary, date),
-  listDiaryDates: () => ipcRenderer.invoke(IPC_CHANNELS.listDiaryDates),
-  saveDiary: (payload) => ipcRenderer.invoke(IPC_CHANNELS.saveDiary, payload),
-  openDiary: (date) => ipcRenderer.invoke(IPC_CHANNELS.openDiary, date),
-  onDiaryChanged: (listener) =>
-    subscribe<string[]>(IPC_CHANNELS.diaryChanged, listener),
   getDailyPlan: (date) => ipcRenderer.invoke(IPC_CHANNELS.getDailyPlan, date),
   listDailyPlanDates: () =>
     ipcRenderer.invoke(IPC_CHANNELS.listDailyPlanDates),

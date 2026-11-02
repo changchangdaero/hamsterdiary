@@ -4,7 +4,7 @@ import type { NotebookViewRequest } from '../../shared/types/notebook'
 import { getWindowIconPath } from '../paths'
 import { configureWindowTaskbar } from './configureWindowTaskbar'
 
-// One window hosts the todo, diary and daily plan tabs and switches between them in place.
+// One window hosts the todo and daily note tabs and switches between them in place.
 export const createNotebookWindow = (request: NotebookViewRequest): BrowserWindow => {
   const window = new BrowserWindow({
     icon: getWindowIconPath(),

@@ -41,7 +41,6 @@ import type {
   SetTodoDonePayload,
   Todo
 } from './todo'
-import type { DiaryEntry, SaveDiaryPayload } from './diary'
 import type {
   DailyPlan,
   DailyPlanCommentResult,
@@ -154,11 +153,6 @@ export interface DesktopPetAPI {
   deleteTodo: (id: string) => Promise<Todo[]>
   openTodos: () => Promise<void>
   onTodosChanged: (listener: (todos: Todo[]) => void) => () => void
-  getDiary: (date: string) => Promise<DiaryEntry | null>
-  listDiaryDates: () => Promise<string[]>
-  saveDiary: (payload: SaveDiaryPayload) => Promise<DiaryEntry | null>
-  openDiary: (date?: string) => Promise<void>
-  onDiaryChanged: (listener: (dates: string[]) => void) => () => void
   getDailyPlan: (date: string) => Promise<DailyPlan | null>
   listDailyPlanDates: () => Promise<string[]>
   saveDailyPlan: (payload: SaveDailyPlanPayload) => Promise<DailyPlan | null>

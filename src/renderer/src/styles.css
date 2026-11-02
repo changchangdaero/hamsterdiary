@@ -2902,7 +2902,12 @@ dd {
   background: var(--pixel-red);
 }
 
-/* Asked once before the first daily plan goes to Gemini. */
+.plan-comment-hint {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+}
+
+/* Asked once before the first daily note goes to Gemini. */
 .plan-gemini-notice {
   margin-top: 8px;
   border: 2px solid var(--pixel-ink);

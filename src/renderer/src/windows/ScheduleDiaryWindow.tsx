@@ -257,16 +257,9 @@ function ScheduleDiaryWindow(): React.JSX.Element {
           <button
             type="button"
             className="secondary"
-            onClick={() => void window.desktopPetAPI.openDiary()}
-          >
-            ✎ 일기 쓰기
-          </button>
-          <button
-            type="button"
-            className="secondary"
             onClick={() => void window.desktopPetAPI.openDailyPlan()}
           >
-            ☰ 하루 계획
+            ☰ 하루 노트
           </button>
           <button
             type="button"
@@ -404,7 +397,7 @@ function ScheduleDiaryWindow(): React.JSX.Element {
                       {day.date.getDate()}
                     </span>
                     {planDates.has(day.key) && (
-                      <span className="calendar-diary-mark" title="작성한 계획 있음" aria-label="작성한 계획 있음" />
+                      <span className="calendar-diary-mark" title="작성한 노트 있음" aria-label="작성한 노트 있음" />
                     )}
                   </span>
                   {dayHolidays.length > 0 && (

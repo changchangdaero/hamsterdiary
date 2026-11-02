@@ -56,15 +56,15 @@ function SettingsWindow(): React.JSX.Element {
     void window.desktopPetAPI
       .getReminderSettings()
       .then(setSettings)
-      .catch(() => setStatus('설정을 불러오지 못했습니다.'))
+      .catch(() => setStatus('설정을 불러오지 못했어.'))
     void window.desktopPetAPI
       .getPomodoroSettings()
       .then(setPomodoro)
-      .catch(() => setStatus('집중 타이머 설정을 불러오지 못했습니다.'))
+      .catch(() => setStatus('집중 타이머 설정을 불러오지 못했어.'))
     void window.desktopPetAPI
       .getPetBehaviorSettings()
       .then(setBehavior)
-      .catch(() => setStatus('햄이 동작 설정을 불러오지 못했습니다.'))
+      .catch(() => setStatus('햄이 동작 설정을 불러오지 못했어.'))
   }, [])
 
   useEffect(() => {
@@ -103,7 +103,7 @@ function SettingsWindow(): React.JSX.Element {
       setDirty(false)
       return true
     } catch {
-      setStatus('설정을 저장하지 못했습니다. 입력값을 확인해 주세요.')
+      setStatus('설정을 저장하지 못했어. 입력값을 확인해 줘.')
       return false
     } finally {
       setSaving(false)
@@ -143,13 +143,13 @@ function SettingsWindow(): React.JSX.Element {
     try {
       if (action === 'snooze') {
         await window.desktopPetAPI.snoozeReminder({ kind })
-        setStatus('10분 뒤에 다시 알려드릴게요.')
+        setStatus('10분 뒤에 다시 알려줄게.')
       } else {
         await window.desktopPetAPI.muteReminderForToday({ kind })
-        setStatus('이 리마인더는 오늘 더 이상 알리지 않습니다.')
+        setStatus('이 알림은 오늘 더 안 할게.')
       }
     } catch {
-      setStatus('리마인더 제어 요청을 처리하지 못했습니다.')
+      setStatus('알림을 바꾸지 못했어.')
     }
   }
 
@@ -179,7 +179,7 @@ function SettingsWindow(): React.JSX.Element {
             <div className="setting-card-heading">
               <div>
                 <h2>{label}</h2>
-                <p>기본 간격마다 펫 말풍선으로 알려줍니다.</p>
+                <p>정해둔 간격마다 말풍선으로 알려줄게.</p>
               </div>
               <label className="setting-switch">
                 <input
@@ -244,7 +244,7 @@ function SettingsWindow(): React.JSX.Element {
         <div className="setting-card-heading">
           <div>
             <h2>야간 자동 무음</h2>
-            <p>설정 시간에는 반복 리마인더를 조용히 건너뜁니다.</p>
+            <p>이 시간에는 반복 알림 없이 조용히 있을게.</p>
           </div>
           <label className="setting-switch">
             <input

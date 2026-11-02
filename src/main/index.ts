@@ -21,7 +21,7 @@ import { registerOnboardingIpc } from './ipc/registerOnboardingIpc'
 import { registerHelpIpc } from './ipc/registerHelpIpc'
 import { registerPomodoroIpc } from './ipc/registerPomodoroIpc'
 import { registerTodoIpc } from './ipc/registerTodoIpc'
-import { registerDiaryIpc } from './ipc/registerDiaryIpc'
+import { mergeDiaryIntoNotes } from './services/mergeDiaryIntoNotes'
 import { registerDailyPlanIpc } from './ipc/registerDailyPlanIpc'
 import { registerNotebookIpc } from './ipc/registerNotebookIpc'
 import { registerSettingsIpc } from './ipc/registerSettingsIpc'
@@ -352,18 +352,11 @@ const openNotebook = (request: NotebookViewRequest): void => {
 }
 
 const openTodoWindow = (): void => openNotebook({ view: 'todos' })
-const openDiaryWindow = (date?: string): void => openNotebook({ view: 'diary', date })
 const openDailyPlanWindow = (date?: string): void =>
   openNotebook({ view: 'plan', date })
 
 const closeNotebook = (): void => {
   if (isWindowAlive(notebookWindow)) notebookWindow.close()
-}
-
-const broadcastDiaryChanged = (dates: string[]): void => {
-  if (isWindowAlive(notebookWindow)) {
-    notebookWindow.webContents.send(IPC_CHANNELS.diaryChanged, dates)
-  }
 }
 
 const broadcastDailyPlanChanged = (dates: string[]): void => {
@@ -738,6 +731,7 @@ if (!hasSingleInstanceLock) {
 
   void app.whenReady().then(() => {
     app.setAppUserModelId('com.desktop.pet.scheduler')
+    mergeDiaryIntoNotes()
     registerFoundationIpc()
     notificationScheduler = new NotificationScheduler({
       notify: showPetNotification,
@@ -766,7 +760,6 @@ if (!hasSingleInstanceLock) {
       openHelp: openHelpWindow,
       openPomodoro: openPomodoroWindow,
       openTodos: openTodoWindow,
-      openDiary: () => openDiaryWindow(),
       openDailyPlan: () => openDailyPlanWindow(),
       quitApp
     })
@@ -891,16 +884,6 @@ if (!hasSingleInstanceLock) {
       todoCompleted: showTodoCompletionReaction,
       openTodos: openTodoWindow
     })
-    registerDiaryIpc({
-      getTrustedWindows: () => [
-        mainWindow,
-        petWindow,
-        scheduleDiaryWindow,
-        notebookWindow
-      ],
-      openDiary: openDiaryWindow,
-      diaryChanged: broadcastDiaryChanged
-    })
     registerDailyPlanIpc({
       getTrustedWindows: () => [
         mainWindow,
@@ -944,7 +927,6 @@ if (!hasSingleInstanceLock) {
       openHelp: openHelpWindow,
       openPomodoro: openPomodoroWindow,
       openTodos: openTodoWindow,
-      openDiary: () => openDiaryWindow(),
       openDailyPlan: () => openDailyPlanWindow(),
       quitApp
     })

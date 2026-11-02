@@ -1,4 +1,4 @@
-// 노트 창의 계획 탭: 달력에서 날짜를 골라 그날 계획을 적고 햄이에게 보여줍니다.
+// 노트 창의 하루 노트 탭: 달력에서 날짜를 골라 계획이나 있었던 일을 적고 햄이에게 보여줍니다.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DailyPlanCommentResult } from '../../../shared/types/plan'
 import {
@@ -30,8 +30,8 @@ const commentStateLabel = (state: CommentState, truncated: boolean): string => {
   if (state === 'ok') return truncated ? '햄이가 말해줬어! (앞부분만 읽었어)' : '햄이가 말해줬어!'
   if (state === 'limited') return '햄이가 지금은 더 읽기 어렵대.'
   if (state === 'not-configured') return 'AI 대화 서버가 아직 연결되지 않았어.'
-  if (state === 'error') return '햄이가 계획을 읽지 못했어.'
-  if (state === 'empty') return '먼저 계획을 적어줘!'
+  if (state === 'error') return '햄이가 노트를 읽지 못했어.'
+  if (state === 'empty') return '먼저 노트를 적어줘!'
   return ''
 }
 
@@ -113,7 +113,7 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
     }
   }
 
-  // The first plan sent to Gemini waits for the user to read the notice; if the check fails, nothing is sent.
+  // The first note sent to Gemini waits for the user to read the notice; if the check fails, nothing is sent.
   const requestShowToHami = async (): Promise<void> => {
     try {
       if (await window.desktopPetAPI.needsGeminiPlanNotice()) {
@@ -179,7 +179,7 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
                 type="button"
                 className={dayClassName(day)}
                 aria-pressed={day.key === date}
-                aria-label={`${day.date.toLocaleDateString('ko-KR')} 계획${
+                aria-label={`${day.date.toLocaleDateString('ko-KR')} 노트${
                   planDates.has(day.key) ? ' (작성함)' : ''
                 }`}
                 onClick={() => onDateChange(day.key)}
@@ -199,7 +199,7 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
           </button>
         </section>
 
-        <section className="plan-comment" aria-label="햄이에게 계획 보여주기">
+        <section className="plan-comment" aria-label="햄이에게 노트 보여주기">
           <button
             type="button"
             className="plan-comment-button"
@@ -208,9 +208,10 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
           >
             {lastReply ? '햄이에게 다시 보여주기' : '햄이에게 보여주기'}
           </button>
+          <p className="plan-comment-hint">누르면 이 페이지 내용이 AI로 전송돼.</p>
           {showGeminiNotice && (
             <div className="plan-gemini-notice" role="alertdialog" aria-label="Gemini 전송 안내">
-              <p>이 계획이 Google Gemini로 전송돼. 결제를 연결하지 않은 무료 등급이면 내용이 Google의 AI 학습에 쓰이고, 사람이 읽을 수도 있어. 민감한 내용은 빼고 보내줘.</p>
+              <p>이 페이지 내용이 Google Gemini로 전송돼. 결제를 연결하지 않은 무료 등급이면 내용이 Google의 AI 학습에 쓰이고, 사람이 읽을 수도 있어. 민감한 내용은 빼고 보내줘.</p>
               <div>
                 <button type="button" onClick={() => setShowGeminiNotice(false)}>취소</button>
                 <button type="button" className="confirm" onClick={() => void confirmGeminiNotice()}>확인하고 보여주기</button>
@@ -242,8 +243,8 @@ function PlanView({ date, onDateChange }: Props): React.JSX.Element {
           aria-labelledby="plan-page-title"
           value={text}
           disabled={status === 'loading' || status === 'load-error'}
-          maxLength={20000}
-          placeholder={'오늘은 어떤 하루를 보낼까?\n하고 싶은 일, 해야 할 일, 떠오르는 생각을 자유롭게 적어봐.'}
+          maxLength={40000}
+          placeholder={'오늘 계획이나 하루 있었던 일을 자유롭게 적어봐.\n하고 싶은 일, 해야 할 일, 떠오르는 생각 뭐든 좋아.'}
           onChange={(event) => setText(event.target.value)}
         />
         <footer className="plan-status" role="status">

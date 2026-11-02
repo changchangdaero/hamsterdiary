@@ -34,8 +34,8 @@ export const BYOK_PROVIDER_INFO: Record<ByokProvider, ByokProviderInfo> = {
     usagePageUrl: 'https://platform.openai.com/usage',
     tokenLimitParam: 'max_completion_tokens',
     models: [
-      { id: 'gpt-5-nano', label: 'gpt-5-nano', hint: '가장 저렴하고 빨라요 (햄이 서버와 같은 모델)', reasoningEffort: 'minimal' },
-      { id: 'gpt-5-mini', label: 'gpt-5-mini', hint: '말이 더 자연스러워요. 비용은 약 5배', reasoningEffort: 'minimal' }
+      { id: 'gpt-5-nano', label: 'gpt-5-nano', hint: '가장 저렴하고 빨라 (햄이 서버와 같은 모델)', reasoningEffort: 'minimal' },
+      { id: 'gpt-5-mini', label: 'gpt-5-mini', hint: '말이 더 자연스러워. 비용은 약 5배', reasoningEffort: 'minimal' }
     ]
   },
   gemini: {
@@ -45,9 +45,9 @@ export const BYOK_PROVIDER_INFO: Record<ByokProvider, ByokProviderInfo> = {
     usagePageUrl: 'https://aistudio.google.com/apikey',
     tokenLimitParam: 'max_tokens',
     models: [
-      { id: 'gemini-3.5-flash-lite', label: 'gemini-3.5-flash-lite', hint: '빠르고 가벼워요. 무료 등급으로도 쓸 수 있어요', reasoningEffort: 'minimal', maxOutputTokens: 400 },
+      { id: 'gemini-3.5-flash-lite', label: 'gemini-3.5-flash-lite', hint: '빠르고 가벼워. 무료 등급으로도 쓸 수 있어', reasoningEffort: 'minimal', maxOutputTokens: 400 },
       // Thinking cannot be turned off on this model; low is its lowest level.
-      { id: 'gemini-3.8-flash', label: 'gemini-3.8-flash', hint: '말이 더 자연스러워요. 무료 등급으로도 쓸 수 있어요', reasoningEffort: 'low', maxOutputTokens: 1000 }
+      { id: 'gemini-3.8-flash', label: 'gemini-3.8-flash', hint: '말이 더 자연스러워. 무료 등급으로도 쓸 수 있어', reasoningEffort: 'low', maxOutputTokens: 1000 }
     ]
   }
 }

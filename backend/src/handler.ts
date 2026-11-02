@@ -28,7 +28,7 @@ const json = (statusCode: number, body: unknown) => ({
 const limitMessage = (reason: UsageLimitError['reason']): string => {
   if (reason === 'daily') return '오늘 나랑 나눌 수 있는 AI 대화를 모두 사용했어. 내일 다시 얘기하자! 🐹'
   if (reason === 'monthly') return '이번 달에 나랑 나눌 수 있는 AI 대화를 모두 사용했어. 다음 달에 다시 얘기하자! 🐹'
-  if (reason === 'budget') return '이번 달에는 내가 잠깐 쉬어야 할 것 같아. 다음 달에 다시 얘기하자! 일정이나 할 일, 일기, 뽀모도로는 계속 사용할 수 있어. 🐹'
+  if (reason === 'budget') return '이번 달에는 내가 잠깐 쉬어야 할 것 같아. 다음 달에 다시 얘기하자! 일정이나 할 일, 하루 노트, 뽀모도로는 계속 사용할 수 있어. 🐹'
   return '아직 앞에서 한 말을 생각하고 있어. 잠깐 뒤에 다시 말해줘! 🐹'
 }
 

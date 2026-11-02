@@ -6,6 +6,7 @@ import type { ParsedSchedule } from '../scheduleParser'
 import {
   describeSchedules,
   detectScheduleIntent,
+  findMissedSchedule,
   findScheduleTargets,
   scheduleDateTime,
   scheduleWhenLabel,
@@ -48,7 +49,7 @@ const errorText = (error: unknown): string =>
 
 function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.Element {
   const [text, setText] = useState('')
-  const [reply, setReply] = useState('무슨 얘기 하고 싶어? 일정도 말로 넣을 수 있어! 🐹')
+  const [reply, setReply] = useState('무슨 얘기 하고 싶어? "내일 3시 병원 일정 추가해줘"처럼 말하면 일정도 넣어줄게! 🐹')
   const [pageIndex, setPageIndex] = useState(0)
   const [pageTyped, setPageTyped] = useState(false)
   const [history, setHistory] = useState<ChatTurn[]>([])
@@ -56,6 +57,7 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [showCalendarLink, setShowCalendarLink] = useState(false)
   const [usageHint, setUsageHint] = useState('')
+  const [missedSchedule, setMissedSchedule] = useState<ParsedSchedule | null>(null)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -182,9 +184,14 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
     setPendingAction(null)
     setShowCalendarLink(false)
     setUsageHint('')
+    setMissedSchedule(null)
     const intent = detectScheduleIntent(message)
-    if (intent) await handleScheduleIntent(intent, message)
-    else await askHami(message)
+    if (intent) {
+      await handleScheduleIntent(intent, message)
+    } else {
+      setMissedSchedule(findMissedSchedule(message))
+      await askHami(message)
+    }
   }
 
   const confirmAction = async (): Promise<void> => {
@@ -238,6 +245,13 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
     say('알겠어, 그대로 둘게!')
   }
 
+  // Hami already answered this sentence, so its card has no "just chat" option.
+  const addMissedSchedule = (item: ParsedSchedule): void => {
+    setMissedSchedule(null)
+    setPendingAction({ kind: 'add', items: [item], message: '' })
+    say('이렇게 넣을까?')
+  }
+
   // The sentence was misread as a schedule; send it to Hami as normal chat.
   const chatInstead = (message: string): void => {
     setPendingAction(null)
@@ -286,7 +300,7 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
           <button type="button" className="confirm" onClick={() => void confirmAction()}>{confirmLabel}</button>
           <button type="button" onClick={cancelAction}>취소</button>
         </div>
-        {pendingAction.kind === 'add' && (
+        {pendingAction.kind === 'add' && pendingAction.message && (
           <button type="button" className="pet-schedule-chat-instead" onClick={() => chatInstead(pendingAction.message)}>
             일정 말고 그냥 대화할래
           </button>
@@ -320,6 +334,15 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
         </p>
         {usageHint && !pending && <p className="pet-inline-usage">{usageHint}</p>}
         {renderPendingAction()}
+        {missedSchedule && !pending && !pendingAction && (
+          <button
+            type="button"
+            className="pet-schedule-chat-instead"
+            onClick={() => addMissedSchedule(missedSchedule)}
+          >
+            이 말을 일정으로 넣기
+          </button>
+        )}
         {showCalendarLink && !pending && (
           <button
             type="button"
@@ -345,7 +368,7 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
             rows={1}
             autoFocus
             disabled={pending}
-            placeholder="예: 내일 3시 병원, 오늘 뭐 있어?"
+            placeholder="예: 내일 3시 병원 일정 추가해줘"
             aria-label="햄이에게 할 말"
             onChange={(event) => {
               setText(event.target.value)
@@ -362,7 +385,7 @@ function PetScheduleInput({ side, onClose }: PetScheduleInputProps): React.JSX.E
             보내기
           </button>
         </div>
-        <p className="pet-inline-privacy">일정 말은 이 컴퓨터에서만 처리돼. 그 밖의 대화와 최근 대화 일부만 AI로 전송돼.</p>
+        <p className="pet-inline-privacy">일정으로 알아들은 말은 이 컴퓨터에서만 처리돼. 그 밖의 말과 최근 대화 일부는 AI로 전송돼.</p>
         <button type="button" className="close" aria-label="대화 닫기" onClick={onClose}>×</button>
         {error && <p className="pet-inline-error" role="alert">{error}</p>}
       </div>
